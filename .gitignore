@@ -1,1 +1,4 @@
 src/__pycache__/
+.vscode/launch.json
+.gitignore
+__pycache__/main.cpython-313.pyc

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>FNO Data Handler</title>
+</head>
+<body>
+<form action="/" method="post">
+    <div>Vyplňte následující možnosti:</div>
+
+    <div>
+        <label for="pacs_select">PACS server:</label>
+        <select name="pacs_select" id="pacs_select">
+            <option value="">--Vyberte PACS server--</option>
+            <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="process_select">Proces:</label>
+        <select name="process_select" id="proces_select">
+            <option value="">--Vyberte proces--</option>
+            <option value="dcm2mha">DICOM na MHA</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="series_uids">Series Instance UIDs:</label>
+        <textarea name="series_uids" id="series_uids" rows="5" cols="50"></textarea>
+    </div>
+
+    <div>
+        <label for="notify_email">Email:</label>
+        <input name="notify_email" id="notify_email"/>
+    </div>
+
+    <div>
+        <input type="submit" value="Poslat žádost"/>
+    </div>
+</form>
+
+</body>
+</html>
