@@ -1,0 +1,71 @@
+<!-- templates/history.html-->
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Historie požadavků</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+
+</head>
+
+<body>
+    <table class="job_table">
+        <colgroup>
+            <col style="width: 10%;"> <!-- request_id -->
+            <col style="width: 12.5%;"> <!-- pacs -->
+            <col style="width: 10%;"> <!-- process -->
+            <col style="width: 30%;"> <!-- uids -->
+            <col style="width: 10%;"> <!-- email -->
+            <col style="width: 10%;"> <!-- date -->
+            <col style="width: 10%;"> <!-- start time -->
+            <col style="width: 10%;"> <!-- finish time -->
+            <col style="width: 10%;"> <!-- status -->
+        </colgroup>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>PACS</th>
+                <th>Proces</th>
+                <th>UID</th>
+                <th>Email</th>
+                <th>Datum vytvoření</th>
+                <th>Čas začátku</th>
+                <th>Čas dokončení</th>
+                <th>Stav</th>
+            </tr>
+        </thead>
+        <tbody id="history_table"></tbody>
+    </table>
+      
+    <script>
+        const historyTable = document.getElementById("history_table");
+        const ws = new WebSocket(`ws://${location.host}/ws/history`);
+        
+        ws.onmessage = function(event) {
+            const jobs = JSON.parse(event.data);
+            historyTable.innerHTML = ""; // clear previous data      
+            jobs.forEach(job => {
+                const row = document.createElement("tr");
+                const status_class = `status_badge status_${job.status}`;
+                const status_text = job.status.charAt(0).toUpperCase() + job.status.slice(1);
+                const uid_cell_text = job.series_uid_list.join(",<br>")
+
+                row.innerHTML = `
+                    <td>${job.request_id}</td>
+                    <td>${job.pacs_ae} ${job.pacs_ip}:${job.pacs_port}</td>
+                    <td>${job.process_name}</td>
+                    <td><div class=uid-cell>${uid_cell_text}</div></td>
+                    <td>${job.notify_email}</td>
+                    <td>${job.date}</td>
+                    <td>${job.start_time}</td>
+                    <td>${job.finish_time}</td>
+                    <td><span class="status_badge status_${job.status}">${job.status}</span></td>
+                `;
+                historyTable.appendChild(row);
+            });
+        };
+    </script>
+      
+</body>
+</html>

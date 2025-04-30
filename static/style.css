@@ -1,0 +1,151 @@
+/* style.css */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f6f6f6;
+    margin: 0;
+    padding: 30px;
+}
+
+form {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 25px 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+div {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+select, textarea, input[type="text"], input[type="email"], input[type="submit"], input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+input[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.job_table {
+    table-layout: fixed;
+    border-collapse: collapse;
+    width: 100%;
+    border-collapse: collapse;
+    font-family: sans-serif;
+    margin-top: 1rem;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.job_table th, .job_table td {
+    padding: 12px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.job_table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.job_table tr {
+    border-bottom: 1px solid #ccc;
+}
+
+.job_table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.job_table tbody tr {
+    min-height: 6em;
+}
+
+.job_table td {
+    vertical-align: top;
+    overflow: hidden;
+}
+
+.uid-cell {
+    overflow-y: auto;
+    overflow-x: auto;
+    line-height: 1.5em;
+    padding-right: 4px;
+}
+
+.status_badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.status_pending {
+    font-weight: bold;
+    background-color: #f0ad4e;
+}
+
+.status_processing {
+    font-weight: bold;
+    background-color: #0275d8;
+}
+
+.status_done {
+    font-weight: bold;
+    background-color: #5cb85c;
+}
+
+.job_card {
+    border: 2px solid #0275d8;
+    border-left: 8px solid #0275d8;
+    background-color: #f7f9fc;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-family: sans-serif;
+}
+
+.job_card {
+    background-color: #f9f9f9;
+    padding: 1em;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1em;
+}
+
+.job_card_inner {
+    padding: 1em;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

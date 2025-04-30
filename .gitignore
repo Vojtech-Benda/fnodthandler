@@ -1,4 +1,9 @@
+.venv/
 src/__pycache__/
-.vscode/launch.json
+.vscode/
 .gitignore
-__pycache__/main.cpython-313.pyc
+__pycache__/
+input/
+processed/
+output/
+jobs_history.db

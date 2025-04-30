@@ -8,4 +8,7 @@ class Job(BaseModel):
     process_name: str = ""
     notify_email: str = ""
     series_uid_list: list = []
-    finished: bool = False
+    date: str = ""
+    start_time: str = ""
+    finish_time: str = ""
+    status: bool = "pending"
