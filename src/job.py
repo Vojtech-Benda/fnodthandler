@@ -1,13 +1,12 @@
 from pydantic import BaseModel
-from typing import Dict, Union
 
 
 class Job(BaseModel):
     request_id: str = ""
-    pacs: dict = {"ip": "", "port": "", "aetitle": ""}
+    pacs: dict[str, str] = {"ip": "", "port": "", "aetitle": ""}
     process_name: str = ""
     notify_email: str = ""
-    series_uid_list: list = []
+    series_uid_list: list[str] = []
     date: str = ""
     start_time: str = ""
     finish_time: str = ""

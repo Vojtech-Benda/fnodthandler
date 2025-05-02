@@ -12,6 +12,7 @@ import string
 import json
 import aiosqlite
 import asyncio
+import shutil
 from datetime import datetime
 
 from src.algorithms import dicom_convert
@@ -35,7 +36,8 @@ async def lifespan(app: FastAPI):
     await check_queue() # needs to run once to register with lifespan and FastAPI
     app.add_event_handler("startup", check_queue)
     
-    await history.init_db()
+    if not os.path.exists("jobs_history.db"):
+        await history.init_db()
     
     if not os.path.exists("./input"):
         os.makedirs("./input", exist_ok=True)
@@ -156,9 +158,15 @@ async def check_queue():
         current_job.start_time = datetime.now().strftime("%H:%M:%S")
         await broadcast_job_queue(current_job)
         fno_logger.debug("job queue table updated")
-        number_of_series = download_dcm(current_job.request_id, current_job.pacs, current_job.series_uid_list)
-        fno_logger.info("download process finished")
-                
+        
+        
+        number_of_series = None
+        if not os.path.exists(f"./processed/{current_job.request_id}"):
+            number_of_series = download_dcm(current_job.request_id, current_job.pacs, current_job.series_uid_list)
+            fno_logger.info("download process finished")    
+        
+        # add getting data from ./processed if it exists
+        
         if number_of_series != 0:
             output_dir = os.path.join("./output", current_job.request_id)
             os.makedirs(output_dir, exist_ok=True)
@@ -180,6 +188,15 @@ async def check_queue():
             fno_logger.error(f"failed to write job to DB: {e}")
             import traceback
             traceback.print_exc()
+            
+        source_dirpath = f"./input/{current_job.request_id}"
+        dest_dirpath = f"./processed/{current_job.request_id}"
+        if os.path.exists(dest_dirpath):
+            fno_logger.debug(f"directory \"{dest_dirpath}\" exists, overwriting")
+            shutil.rmtree(dest_dirpath)
+            
+        shutil.move(source_dirpath, dest_dirpath)
+        fno_logger.debug(f"moved \"{current_job.request_id}\" data to \"./processed/\" ")
         current_job = None
         removed_job = job_queue.pop(0)
         fno_logger.info(f"removed job from queue")

@@ -1,6 +1,9 @@
 import aiosqlite
-import json
+import os
 from .job import Job
+from .logger import setup_logger
+
+fno_logger = setup_logger("fnodthandler")
 
 async def init_db():
     async with aiosqlite.connect("jobs_history.db") as db:
@@ -19,11 +22,10 @@ async def init_db():
                          status TEXT
                          )''')
         await db.commit()
+        fno_logger.info("created database jobs_history.db")
         
         
 async def write_job_to_db(job: Job):
-    
-    # uid_list = ", ".join(job.series_uid_list)
     async with aiosqlite.connect("jobs_history.db") as db:
         await db.execute(
             '''
@@ -36,7 +38,6 @@ async def write_job_to_db(job: Job):
                 job.pacs['ip'], 
                 job.pacs['port'],
                 job.process_name,
-                # uid_list,
                 ",".join(job.series_uid_list),
                 job.notify_email,
                 job.date,
@@ -46,6 +47,6 @@ async def write_job_to_db(job: Job):
             )
         )
         await db.commit()
-        print(f"[DB] job written to history")
+        fno_logger.info("job written to history")
         
         

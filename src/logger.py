@@ -1,5 +1,4 @@
 import logging
-import os
 
 WHITE = "\033[0m"
 LOGLEVEL_COLORS = {
@@ -22,23 +21,23 @@ class ColorFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logger(logger_name="", debug_mode=False):
-    # DEBUG_MODE = os.getenv("DEBUG", "0") == "1"
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
-    handler.setFormatter(ColorFormatter("%(asctime)s %(levelname)s: [%(process_name)s] %(message)s", datefmt="%H:%M:%S"))
-
-    if len(logger_name) == 0:
-        logger_name = f"{__name__}_logger"
-        
+def setup_logger(logger_name="test-name", debug_mode=False):
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
-    logger.handlers = [handler]
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+        handler.setFormatter(
+            ColorFormatter("%(asctime)s %(levelname)s: [%(process_name)s] %(message)s",
+                           datefmt="%H:%M:%S"))
+            
+        logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
+        logger.handlers = [handler]
+        logger.propagate = False
     return logger
     
 
 if __name__ == "__main__":
-    logger = setup_logger("test-name", debug_mode=True)
+    logger = setup_logger(debug_mode=True)
     logger.debug("debug message")
     logger.info("info message")
     logger.warning("warning message")
