@@ -1,35 +1,42 @@
 import sys
 import SimpleITK as sitk
 import os
+from ..logger import setup_logger
 
-def dcm_convert(input_dir: str, output_datatype: str, output_dir: str = "."):
+fno_logger = setup_logger("fnodthandler")
+
+def dcm_convert(data_dirs: str, output_datatype: str, output_dir: str = "."):
+    cond = 0
     PROCESS_NAME = f"dcm2{output_datatype}"
-    data_dirs = os.listdir(input_dir)
-    print(f"[{PROCESS_NAME}][INFO] found {len(data_dirs)} in {input_dir}")
+    # data_dirs = os.listdir(input_dir)
+    fno_logger.info(f"converting {len(data_dirs)} data")
     reader = sitk.ImageSeriesReader()
     
     # reader.LoadPrivateTagsOn()
-    for dir in data_dirs:
-        dicom_names = reader.GetGDCMSeriesFileNames(os.path.join(input_dir, dir))
+    for directory in data_dirs:
+        dicom_names = reader.GetGDCMSeriesFileNames(directory)
         reader.SetFileNames(dicom_names)
         image: sitk.Image = None
         try:
             image = reader.Execute()
         except:
             # return -1
-            print(f"[{PROCESS_NAME}][ERROR] unable to read image: \"{dir}\"")
+            fno_logger.error(f"unable to read image data: \"{directory}\"")
             continue
         # print(f"[{PROCESS_NAME}] Image: size {image.GetSize()}, pixel type {image.GetPixelIDTypeAsString()}, spacing {image.GetSpacing()}")
-        print(f"[{PROCESS_NAME}][INFO] writing as {output_datatype.upper()} to \"{output_dir}/{dir}\"")
-        filename = os.path.join(output_dir, dir + f".{output_datatype}")
+        filename = os.path.join(output_dir, os.path.basename(directory) + f".{output_datatype}")
+        fno_logger.info(f"writing as {output_datatype.upper()} to \"{filename}\"")
         if os.path.exists(filename):
-            print(f"[{PROCESS_NAME}][WARN] file exists, overwriting: \"{filename}\"")
+            fno_logger.info(f"file exists, overwriting: \"{filename}\"")
         try:
             sitk.WriteImage(image, filename)
-            print(f"[{PROCESS_NAME}][INFO] DICOM saved as {output_datatype.upper()}")
-        except:
-            print(f"[{PROCESS_NAME}][ERROR] failed to write as {output_datatype.upper()}: \"{filename}\"")
-    return 0
+            fno_logger.info(f"writing {output_datatype.upper()} finished")
+            cond = 0
+        except RuntimeError as err:
+            fno_logger.error(f"writing {output_datatype.upper()} failed")
+            fno_logger.error(err)
+            cond = -1
+    return cond
         # else:
         #     print("[dcm2mha] SeriesInstanceUID not found")
         #     print("[dcm2mha] Unable to save as MHA")

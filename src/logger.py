@@ -12,12 +12,9 @@ LOGLEVEL_COLORS = {
 
 class ColorFormatter(logging.Formatter):
     def format(self, record):
-        if not hasattr(record, "process_name"):
-            record.process_name = "-"
         levelname = record.levelname
         color = LOGLEVEL_COLORS.get(levelname, "")
         record.levelname = f"{color}{levelname}{WHITE}"
-        # record.msg = f"{record.msg}"
         return super().format(record)
 
 
@@ -27,7 +24,7 @@ def setup_logger(logger_name="test-name", debug_mode=False):
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG if debug_mode else logging.INFO)
         handler.setFormatter(
-            ColorFormatter("%(asctime)s %(levelname)s: [%(process_name)s] %(message)s",
+            ColorFormatter("%(asctime)s %(levelname)s: %(message)s",
                            datefmt="%H:%M:%S"))
             
         logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
@@ -43,11 +40,3 @@ if __name__ == "__main__":
     logger.warning("warning message")
     logger.error("error message")
     logger.critical("critical message")
-    
-    
-    process_name = "random_proces"
-    logger.debug("debug message", extra={"process_name": process_name})
-    logger.info("info message", extra={"process_name": process_name})
-    logger.warning("warning message", extra={"process_name": process_name})
-    logger.error("error message", extra={"process_name": process_name})
-    logger.critical("critical message", extra={"process_name": process_name})

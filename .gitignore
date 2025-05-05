@@ -7,3 +7,4 @@ input/
 processed/
 output/
 jobs_history.db
+tests/

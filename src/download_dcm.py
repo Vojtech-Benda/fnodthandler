@@ -2,11 +2,17 @@ import sys
 import os
 import subprocess
 
+from .logger import setup_logger
+
+
+fno_logger = setup_logger("fnodthandler")
+
 def download_dcm(request_id: str, pacs: dict, series_uids: list):
     result = None
     failed_series = []
     for serie_uid in series_uids:
-        output_dir = f"./input/{request_id}/{serie_uid}"
+        output_dir = f"./input/{serie_uid}"
+        fno_logger.debug(f"creating download directory \"{output_dir}\"")
         os.makedirs(output_dir, exist_ok=True)
         try: 
             result = subprocess.run([sys.executable,
@@ -21,8 +27,8 @@ def download_dcm(request_id: str, pacs: dict, series_uids: list):
                                      "-q"
                                      ])
         except subprocess.CalledProcessError as er:
-            print(f"[ERROR] script movescu.py failed with exit code {er.returncode}")
-            print(f"[ERROR] script arguments {pacs}, download dir {output_dir}, series uid {serie_uid}")
+            fno_logger.error(f"script movescu.py failed with exit code {er.returncode}")
+            fno_logger.error(f"script arguments {pacs}, download dir {output_dir}, series uid {serie_uid}")
             failed_series.append(serie_uid)
             os.rmdir(output_dir)
             
@@ -31,10 +37,12 @@ def download_dcm(request_id: str, pacs: dict, series_uids: list):
             failed_series.append(serie_uid)
             os.rmdir(output_dir)
             
-    found_series = len(os.listdir(f"./input/{request_id}"))
-    print(f"[INFO] downloaded {found_series} out of {len(series_uids)} series")
+    downloaded_uids = [uid for uid in serie_uid if uid in os.listdir("./input")]
+    fno_logger.info(f"downloaded {len(downloaded_uids)} out of {len(series_uids)} series")
     
     if len(failed_series) != 0:
-        print(f"[INFO] missing series {failed_series}")
-        
-    return found_series        
+        fno_logger.warning(f"failed downloading uids:\n{",\n".join(failed_series)}")
+    
+    if len(failed_series) == len(series_uids):
+        return -1
+    return result.returncode

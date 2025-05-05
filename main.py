@@ -7,6 +7,7 @@ from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 
 import os
+import sys
 import random
 import string
 import json
@@ -23,7 +24,6 @@ from src import history
 from src.logger import setup_logger
 
 
-PROCESS_NAME = "main"
 fno_logger = setup_logger("fnodthandler")
 
 def main():
@@ -45,9 +45,9 @@ async def lifespan(app: FastAPI):
     if not os.path.exists("./output"):
         os.makedirs("./output", exist_ok=True)
         fno_logger.info("created directory \"./output\"")
-    if not os.path.exists("./processed"):
-        os.makedirs("./processed", exist_ok=True)
-        fno_logger.info("created directory \"./processed\"")
+    # if not os.path.exists("./processed"):
+        # os.makedirs("./processed", exist_ok=True)
+        # fno_logger.info("created directory \"./processed\"")
     
     yield
 
@@ -153,29 +153,50 @@ async def check_queue():
     fno_logger.info("checking queue...")
     if len(job_queue) != 0:
         fno_logger.info(f"found {len(job_queue)} jobs")
-        current_job = job_queue[0]
+        current_job = job_queue.pop(0)
         current_job.status = "processing"
         current_job.start_time = datetime.now().strftime("%H:%M:%S")
+        
         await broadcast_job_queue(current_job)
         fno_logger.debug("job queue table updated")
+    
+        # FIXME change whole download process?
+        # save data as ./input/<uid>
+        # remove ./processed
+        # look up already downloaded uid data in ./input and take them otherwise download them
+        # missing_uids = []
+        # for uid in current_job.series_uid_list:
+        #     if not os.path.exists(os.path.join("./input", uid)):
+        #         missing_uids.append(uid)        
+        missing_uids = [uid for uid in current_job.series_uid_list 
+                        if not os.path.exists(os.path.join("./input", uid))]
+        code = 0
+        if len(missing_uids) != 0:
+            fno_logger.debug(f"downloading {",\n".join(missing_uids)} data")
+            code = download_dcm(current_job.request_id, current_job.pacs, missing_uids)
+        else:
+            fno_logger.debug(f"all {current_job.request_id} data found in ./input")
         
-        
-        number_of_series = None
-        if not os.path.exists(f"./processed/{current_job.request_id}"):
-            number_of_series = download_dcm(current_job.request_id, current_job.pacs, current_job.series_uid_list)
-            fno_logger.info("download process finished")    
-        
-        # add getting data from ./processed if it exists
-        
-        if number_of_series != 0:
-            output_dir = os.path.join("./output", current_job.request_id)
+        # 0 - all is good
+        # 1 - some data might be missing, ie not found on PACS
+        # -1 - none were downloaded when needed
+        #FIXME: improve the return codes
+        if code == 0 or code == 1:
+            output_dir = f"./output/{current_job.request_id}"
+            fno_logger.debug(f"creating output directory \"{current_job.request_id}\"")
             os.makedirs(output_dir, exist_ok=True)
-            fno_logger.info(f"created output directory \"{current_job.request_id}\"")
-            input_dir = os.path.join("./input", current_job.request_id)
-            fno_logger.info("starting process...")
-            dicom_convert.dcm_convert(input_dir, "mha", output_dir=output_dir)
+            # input_dir = os.path.join("./input", current_job.request_id)
+            
+            data_paths = [os.path.join("./input", uid) for uid in current_job.series_uid_list]
+                    
+            fno_logger.info(f"starting process {current_job.process_name}...")
+            cond = dicom_convert.dcm_convert(data_paths, "mha", output_dir=output_dir) # FIXME data_paths is list of paths already
         
-        current_job.status = "done"
+        if cond == 0:
+            current_job.status = "done"
+        elif cond == -1 or code == -1:
+            current_job.status == "fail"
+        
         current_job.finish_time = datetime.now().strftime("%H:%M:%S")
         await broadcast_job_queue(current_job)
         fno_logger.debug("job queue table updated")
@@ -187,20 +208,23 @@ async def check_queue():
         except Exception as e:
             fno_logger.error(f"failed to write job to DB: {e}")
             import traceback
-            traceback.print_exc()
+            traceback.print_exc()    
             
-        source_dirpath = f"./input/{current_job.request_id}"
-        dest_dirpath = f"./processed/{current_job.request_id}"
-        if os.path.exists(dest_dirpath):
-            fno_logger.debug(f"directory \"{dest_dirpath}\" exists, overwriting")
-            shutil.rmtree(dest_dirpath)
-            
-        shutil.move(source_dirpath, dest_dirpath)
-        fno_logger.debug(f"moved \"{current_job.request_id}\" data to \"./processed/\" ")
-        current_job = None
-        removed_job = job_queue.pop(0)
+        # source_dirpaths = [f"./input/{uid}" for uid in missing_uids]
+        # dest_dirpaths = [f"./processed/{uid}" for uid in missing_uids]
+        
+        # for in_dir, proc_dir in zip(source_dirpaths, dest_dirpaths):
+        #     if os.path.exists(proc_dir):
+        #         fno_logger.debug(f"directory \"{proc_dir}\" exists, overwriting")
+        #         shutil.rmtree(proc_dir)
+                
+        #     shutil.move(in_dir, proc_dir)
+        #     fno_logger.debug(f"moved \"{proc_dir}\" data to \"./processed/\" ")
+    
+        # current_job = None
+        # removed_job = job_queue.pop(0)
         fno_logger.info(f"removed job from queue")
-        fno_logger.debug(utils.format_job_string(removed_job, level=1))
+        fno_logger.debug(utils.format_job_string(current_job, level=1))
     else:
         fno_logger.info("no job to process")
         await broadcast_job_queue()
