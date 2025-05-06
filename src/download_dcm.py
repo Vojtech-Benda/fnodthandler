@@ -41,8 +41,9 @@ def download_dcm(request_id: str, pacs: dict, series_uids: list):
     fno_logger.info(f"downloaded {len(downloaded_uids)} out of {len(series_uids)} series")
     
     if len(failed_series) != 0:
-        fno_logger.warning(f"failed downloading uids:\n{",\n".join(failed_series)}")
+        fno_logger.warning(f"failed downloading uids:\n{"\n".join(failed_series)}")
     
     if len(failed_series) == len(series_uids):
+        fno_logger.error(f"no files downloaded:\n{"\n".join(failed_series)}")
         return -1
     return result.returncode
