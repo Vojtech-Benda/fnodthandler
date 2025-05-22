@@ -28,3 +28,13 @@ def format_job_string(job: Job, level: int = 0):
             f" - {'UIDs:':<16}{job.series_uid_list}\n"
             )
     return job_string
+
+
+def get_settings():
+    import configparser
+    config = configparser.ConfigParser()
+    
+    config.read("settings.ini")
+    receiver: dict = {"aetitle": config.get("receiver", "aetitle"),
+                      "port": config.get("receiver", "store_port")}
+    return receiver

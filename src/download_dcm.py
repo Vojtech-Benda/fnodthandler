@@ -7,7 +7,7 @@ from .logger import setup_logger
 
 fno_logger = setup_logger("fnodthandler")
 
-def download_dcm(request_id: str, pacs: dict, series_uids: list):
+def download_dcm(request_id: str, pacs: dict, receiver: dict, series_uids: list):
     result = None
     failed_series = []
     for serie_uid in series_uids:
@@ -19,9 +19,9 @@ def download_dcm(request_id: str, pacs: dict, series_uids: list):
                                      "./src/algorithms/movescu.py",
                                      pacs['ip'], pacs['port'],
                                      "-aec", pacs['aetitle'],
-                                     "-aet", "VOJTPC",
-                                     "-aem", "VOJTPC",
-                                     "--store", "--store-port", "2000",
+                                     "-aet", receiver['aetitle'],
+                                     "-aem", receiver['aetitle'],
+                                     "--store", receiver['store_port'], "2000",
                                      "-od", output_dir,
                                      "-k", f"SeriesInstanceUID={serie_uid}",
                                      "-q"

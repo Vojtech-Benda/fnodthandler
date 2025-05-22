@@ -6,12 +6,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 
+from fastapi.logger import logger
+
 import os
 import random
 import string
 import json
 import aiosqlite
 import asyncio
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -53,7 +56,8 @@ templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
 clients: list[WebSocket] = []
-
+receiver: dict = utils.get_settings()
+fno_logger.info(f"Receiving on AE Title: {receiver['aetitle']}, store port {receiver['port']}")
 
 @app.websocket("/ws/jobs")
 async def websocket_endpoint(websocket: WebSocket):
@@ -110,7 +114,10 @@ async def broadcast_job_queue(current_job=None):
     job_data = {
         "current_job": current_job.__dict__ if current_job else None,
         "pending_jobs": [job.__dict__ for job in job_queue]}
-    fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
+    
+    if len(job_data['pending_jobs']) != 0:
+        fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
+    
     for client in clients:
         try:
             await client.send_text(json.dumps(job_data))
@@ -156,12 +163,14 @@ async def check_queue():
         await broadcast_job_queue(current_job)
         fno_logger.debug("job queue table updated")
     
+        # check for previously downloaded studies/series
+        # download all/missing data
         missing_uids = [uid for uid in current_job.series_uid_list 
                         if not os.path.exists(os.path.join("./input", uid))]
         code = 0
         if len(missing_uids) != 0:
             fno_logger.debug(f"downloading {",\n".join(missing_uids)} data")
-            code = download_dcm(current_job.request_id, current_job.pacs, missing_uids)
+            code = download_dcm(current_job.request_id, current_job.pacs, receiver, missing_uids)
         else:
             fno_logger.debug(f"all {current_job.request_id} data found in ./input")
         
@@ -206,3 +215,4 @@ async def check_queue():
         fno_logger.info("no job to process")
         await broadcast_job_queue()
         fno_logger.debug("job queue table updated")
+        
