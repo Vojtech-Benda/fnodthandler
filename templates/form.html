@@ -9,33 +9,41 @@
 </head>
 <body>
 <form action="/submit" method="post" id="job_form">
-    <div>
-        <label for="pacs_select">PACS server:</label>
-        <select name="pacs_select" id="pacs_select" required>
-            <option value="">--Vyberte PACS server--</option>
-            <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
-        </select>
-    </div>
+    <div class="form_header_container">
+        <div class="form_field">
+            <label for="pacs_select">PACS server:</label>
+            <select name="pacs_select" id="pacs_select" required>
+                <option value="">--Vyberte PACS server--</option>
+                <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
+            </select>
+        </div>
+        
+        <div class="form_field">
+            <label for="process_select">Proces:</label>
+            <select name="process_select" id="proces_select" required>
+                <option value="">--Vyberte proces--</option>
+                <optgroup label="Konverze datového typu">
+                    <option value="dcm2mha">DICOM na MHA</option>
+                    <option value="dcm2nifti">DICOM na NIFTI</option>
+                </optgroup>
+            </select>
+        </div>
 
-    <div>
-        <label for="process_select">Proces:</label>
-        <select name="process_select" id="proces_select" required>
-            <option value="">--Vyberte proces--</option>
-            <optgroup label="Konverze datového typu">
-                <option value="dcm2mha">DICOM na MHA</option>
-                <option value="dcm2nifti">DICOM na NIFTI</option>
-            </optgroup>
-        </select>
+        <div class="navigation_buttons">
+            <a href="/history" class="navigation_button">Historie procesů</a>
+            <a href="/instructions" class="navigation_button">Instrukce</a>
+        </div>
     </div>
-
+        
     <div>
-        <label for="series_uids">Series Instance UIDs:</label>
-        <textarea name="series_uids" id="series_uids" rows="5" cols="50" required></textarea>
+        <label for="series_uids">UID studie/série:</label>
+        <textarea name="series_uids" id="series_uids" rows="5" cols="50" 
+                placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
     </div>
 
     <div>
         <label for="notify_email">Email:</label>
-        <input name="notify_email" id="notify_email" required/>
+        <input type="email" name="notify_email" id="notify_email" placeholder="jmeno.prijmeni@fno.cz" required/>
     </div>
 
     <div>
