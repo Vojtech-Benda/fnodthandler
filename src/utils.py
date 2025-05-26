@@ -1,3 +1,6 @@
+import os
+import smtplib, ssl
+from email.message import EmailMessage
 from .job import Job
 
 
@@ -30,11 +33,35 @@ def format_job_string(job: Job, level: int = 0):
     return job_string
 
 
-def get_settings():
-    import configparser
-    config = configparser.ConfigParser()
+def send_email(job: Job):
+    sender_email = os.getenv("SENDER_EMAIL_ADDRESS")
+    sender_email_pw = os.getenv("SENDER_EMAIL_PASSWORD")
     
-    config.read("settings.ini")
-    receiver: dict = {"aetitle": config.get("receiver", "aetitle"),
-                      "port": config.get("receiver", "store_port")}
-    return receiver
+    msg = EmailMessage()
+    msg['Subject'] = f"Dokončení procesu {job.request_id} - {job.process_name}" 
+    msg['From'] = sender_email
+    msg['To'] = job.notify_email
+    
+    message = f"""\
+Žádost {job.request_id} - {job.process_name} ze dne {job.date} je dokončena.
+PACS: {job.pacs['aetitle']} - {job.pacs['ip']}:{job.pacs['port']}
+Začátek: {job.start_time}
+Konec: {job.finish_time}
+Stav: {job.status}
+
+Zpracované DICOM UID:\n{",\n".join(job.series_uid_list)}
+
+V případě problémů nebo dotazů se obraťte na vojtech.benda@fno.cz nebo fnodthandlerdev@gmail.com.
+
+Tato zpráva byla vytvořena automaticky. Neodpovídejte na ni.
+"""
+
+    msg.set_content(message)
+    msg.set_charset("utf-8")
+    
+    context = ssl.create_default_context()
+    
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(sender_email, sender_email_pw)
+        server.send_message(msg)
+    
