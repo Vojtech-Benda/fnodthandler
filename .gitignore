@@ -8,3 +8,4 @@ processed/
 output/
 jobs_history.db
 tests/
+.env
