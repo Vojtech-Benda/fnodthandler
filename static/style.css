@@ -155,6 +155,11 @@ textarea {
     background-color: #f0ad4e;
 }
 
+.status_downloading {
+    font-weight: bold;
+    background-color: #0275d8;
+}
+
 .status_processing {
     font-weight: bold;
     background-color: #0275d8;
@@ -163,6 +168,11 @@ textarea {
 .status_done {
     font-weight: bold;
     background-color: #5cb85c;
+}
+
+.status_fail {
+    font-weight: bold;
+    background-color: #d9534f;
 }
 
 .job_card {
