@@ -6,17 +6,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 
-from fastapi.logger import logger
-
+import sys
 import os
 import random
 import string
 import json
 import aiosqlite
 import asyncio
-import argparse
-from pathlib import Path
 from datetime import datetime
+
 
 from src.algorithms import dicom_convert
 from src.download_dcm import download_dcm
@@ -25,13 +23,14 @@ from src import utils
 from src import history
 from src.logger import setup_logger
 
-
 fno_logger = setup_logger("fnodthandler")
+
 
 def main():
     app = FastAPI(lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="static"), name="static")
     return app
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,8 +55,7 @@ templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
 clients: list[WebSocket] = []
-receiver: dict = utils.get_settings()
-fno_logger.info(f"Receiving on AE Title: {receiver['aetitle']}, store port {receiver['port']}")
+
 
 @app.websocket("/ws/jobs")
 async def websocket_endpoint(websocket: WebSocket):
@@ -157,7 +155,7 @@ async def check_queue():
     if len(job_queue) != 0:
         fno_logger.info(f"found {len(job_queue)} jobs")
         current_job = job_queue.pop(0)
-        current_job.status = "processing"
+        current_job.status = "downloading"
         current_job.start_time = datetime.now().strftime("%H:%M:%S")
         
         await broadcast_job_queue(current_job)
@@ -170,7 +168,7 @@ async def check_queue():
         code = 0
         if len(missing_uids) != 0:
             fno_logger.debug(f"downloading {",\n".join(missing_uids)} data")
-            code = download_dcm(current_job.request_id, current_job.pacs, receiver, missing_uids)
+            code = download_dcm(current_job.request_id, current_job.pacs, missing_uids)
         else:
             fno_logger.debug(f"all {current_job.request_id} data found in ./input")
         
@@ -187,7 +185,9 @@ async def check_queue():
             os.makedirs(output_dir, exist_ok=True)
             
             data_paths = [os.path.join("./input", uid) for uid in current_job.series_uid_list]
-                    
+        
+            current_job.status = "processing"
+            await broadcast_job_queue(current_job)    
             fno_logger.info(f"starting process {current_job.process_name}...")
             cond = dicom_convert.dcm_convert(data_paths, "mha", output_dir=output_dir)
         
@@ -208,8 +208,12 @@ async def check_queue():
             fno_logger.error(f"failed to write job to DB: {e}")
             import traceback
             traceback.print_exc()    
+        
+        # send email about finished process
+        utils.send_email(current_job)
+        
             
-        fno_logger.info(f"removed job from queue")
+        fno_logger.info(f"removed job from queue:")
         fno_logger.debug(utils.format_job_string(current_job, level=1))
     else:
         fno_logger.info("no job to process")
