@@ -1,13 +1,19 @@
 import sys
 import os
 import subprocess
+from dotenv import load_dotenv
+from pathlib import Path
 
 from .logger import setup_logger
 
 
 fno_logger = setup_logger("fnodthandler")
 
-def download_dcm(request_id: str, pacs: dict, receiver: dict, series_uids: list):
+receiver_aetitle = os.getenv("RECEIVER_AE_TITLE")
+receiver_store_port = os.getenv("RECEIVER_STORE_PORT")
+fno_logger.info(f"movescu destination is {receiver_aetitle}:{receiver_store_port}")
+
+def download_dcm(request_id: str, pacs: dict, series_uids: list):
     result = None
     failed_series = []
     for serie_uid in series_uids:
@@ -19,9 +25,9 @@ def download_dcm(request_id: str, pacs: dict, receiver: dict, series_uids: list)
                                      "./src/algorithms/movescu.py",
                                      pacs['ip'], pacs['port'],
                                      "-aec", pacs['aetitle'],
-                                     "-aet", receiver['aetitle'],
-                                     "-aem", receiver['aetitle'],
-                                     "--store", receiver['store_port'], "2000",
+                                     "-aet", receiver_aetitle,
+                                     "-aem", receiver_aetitle,
+                                     "--store", "--store-port", receiver_store_port,
                                      "-od", output_dir,
                                      "-k", f"SeriesInstanceUID={serie_uid}",
                                      "-q"
@@ -37,7 +43,7 @@ def download_dcm(request_id: str, pacs: dict, receiver: dict, series_uids: list)
             failed_series.append(serie_uid)
             os.rmdir(output_dir)
             
-    downloaded_uids = [uid for uid in serie_uid if uid in os.listdir("./input")]
+    downloaded_uids = [uid for uid in series_uids if uid in os.listdir("./input")]
     fno_logger.info(f"downloaded {len(downloaded_uids)} out of {len(series_uids)} series")
     
     if len(failed_series) != 0:
