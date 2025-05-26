@@ -140,7 +140,7 @@ async def handle_form(request: Request,
                   process_name=process_select,
                   notify_email=notify_email,
                   series_uid_list=cleaned_uids,
-                  date=datetime_now.strftime("%Y-%m-%d"))
+                  date=datetime_now.strftime("%d-%m-%Y"))
     job_queue.append(new_job)
     fno_logger.info(f"added new job")
     fno_logger.debug(utils.format_job_string(new_job, level=1))
