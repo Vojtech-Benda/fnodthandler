@@ -20,7 +20,7 @@ def main():
     load_dotenv()
     host = os.getenv("APP_HOST")
     port = int(os.getenv("APP_PORT"))
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    uvicorn.run("server:app", host=host, port=port, reload=True)
      
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ import json
 import aiosqlite
 import asyncio
 from datetime import datetime
+from pathlib import Path
+import shutil
 
 
 from src.algorithms import dicom_convert
@@ -26,7 +28,7 @@ from src.logger import setup_logger
 fno_logger = setup_logger("fnodthandler")
 
 
-def main():
+def server():
     app = FastAPI(lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="static"), name="static")
     return app
@@ -35,7 +37,9 @@ def main():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await check_queue() # needs to run once to register with lifespan and FastAPI
+    # await delete_file()
     app.add_event_handler("startup", check_queue)
+    # app.add_event_handler("startup", delete_file)
     
     if not os.path.exists("jobs_history.db"):
         await history.init_db()
@@ -50,7 +54,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = main()
+app = server()
 templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
@@ -106,6 +110,11 @@ def display_form(request: Request):
 @app.get("/history", response_class=HTMLResponse)
 def display_history(request: Request):
     return templates.TemplateResponse("history.html", {"request": request})
+
+
+@app.get("/data", response_class=HTMLResponse)
+def display_data(request: Request):
+    return templates.TemplateResponse("data.html", context={"request": request})
 
 
 async def broadcast_job_queue(current_job=None):
@@ -220,3 +229,25 @@ async def check_queue():
         await broadcast_job_queue()
         fno_logger.debug("job queue table updated")
         
+        
+@repeat_every(seconds=10, wait_first=10)
+def delete_file():
+    check_dir = "./tes"
+    files = os.listdir(check_dir)
+    print(files)
+    if len(files) == 0:
+        return
+    for f in files:
+        
+        path = Path(check_dir + "/" + f)
+        if path.is_dir():
+            shutil.rmtree(path)
+            print(f"removing directory: {path}")
+        elif path.is_file():
+            os.remove(path)
+            print(f"removing file: {path}")
+        else:
+            print(f"unable to remove file/directory: {path}")
+        
+        
+    
