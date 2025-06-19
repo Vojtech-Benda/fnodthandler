@@ -2,7 +2,8 @@ from fastapi import FastAPI, Request, Form
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, FileResponse
+from fastapi.exceptions import HTTPException
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 
@@ -16,6 +17,7 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 import shutil
+import zipfile
 
 
 from src.algorithms import dicom_convert
@@ -31,6 +33,7 @@ fno_logger = setup_logger("fnodthandler")
 def server():
     app = FastAPI(lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/src", StaticFiles(directory="src"), name="src")
     return app
 
 
@@ -97,6 +100,22 @@ async def websocket_history(websocket: WebSocket):
         fno_logger.info("history client disconnected")
             
 
+@app.websocket("/ws/data")
+async def websocket_data(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            job_data = [
+                {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha"},
+                {'request_id': "vg4vu008te", 'process_name': "dcm2mha"}
+                ]
+            await websocket.send_text(json.dumps(job_data))
+            fno_logger.info("job data sent to /data")
+            await asyncio.sleep(3)
+    except WebSocketDisconnect:
+        fno_logger.info("data client disconnected")
+            
+
 @app.get("/", include_in_schema=False)
 def home_redirect():
     return RedirectResponse(url="/submit")
@@ -117,6 +136,18 @@ def display_data(request: Request):
     return templates.TemplateResponse("data.html", context={"request": request})
 
 
+@app.get("/data-download/{request_id}")
+def download_zip(request_id: str):
+    zip_path = Path("./output", f"{request_id}.zip")
+    if not zip_path.is_file():
+        raise HTTPException(status_code=404, detail="ZIP file not found")
+    
+    fno_logger.info(f"sending zip file for {request_id}")
+    return FileResponse(zip_path, filename=f"{request_id}.zip", 
+                        media_type='application/zip', 
+                        headers={"Content-Disposition": f'attachment; filename="{request_id}.zip"'})
+
+
 async def broadcast_job_queue(current_job=None):
     job_data = {
         "current_job": current_job.__dict__ if current_job else None,
@@ -124,6 +155,20 @@ async def broadcast_job_queue(current_job=None):
     
     if len(job_data['pending_jobs']) != 0:
         fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
+    
+    for client in clients:
+        try:
+            await client.send_text(json.dumps(job_data))
+        except Exception as e:
+            fno_logger.error(f"failed to send to a client: {e}")
+            clients.remove(client)
+
+
+async def broadcast_files():
+    job_data = [
+        {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha"},
+        {'request_id': "vg4vu008te", 'process_name': "dcm2mha"}
+        ]
     
     for client in clients:
         try:
@@ -157,6 +202,27 @@ async def handle_form(request: Request,
     fno_logger.debug("job queue table updated")
     return JSONResponse(content={"message": "Job submitted"})
     
+    
+@app.post("/data-prepare/{request_id}")
+def prepare_zip(request_id: str):
+    output_dir = Path("./output", request_id)
+    zip_path = Path("./output", f"{request_id}.zip")
+    
+    if zip_path.exists():
+        fno_logger.info(f"zip file for {request_id} exists")
+        return
+    
+    if not output_dir.exists():
+        raise HTTPException(status_code=404, detail="Output not found")
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(output_dir):
+            for file in files:
+                fullpath = os.path.join(root, file)
+                arcname = os.path.relpath(fullpath, output_dir)
+                zipf.write(fullpath, arcname=arcname)
+    
+    fno_logger.info(f"written zipfile {zip_path}")
     
 @repeat_every(seconds=15)
 async def check_queue():

@@ -1,0 +1,136 @@
+<!-- templates/data.html -->
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Dostupné data | FNO Data Handler</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='data_style.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+</head>
+<body>
+    <div class="header_field">
+        <h2 class="header_title">
+            Seznam zpracovaných dat
+        </h2>
+    </div>
+    <div class="filter_row">
+        <div class="filter_group">
+            <label for="request_id_label" class="filter_label">ID požadavku:</label>
+            <input type="text" class="filter_input" id="request_id_filter" placeholder="a1b2c3d4e5">    
+        </div>
+        <div class="filter_group">
+            <label for="process_name_label" class="filter_label">Název procesu:</label>
+            <input type="text" class="filter_input process_filter" id="process_name_filter" placeholder="dcm2mha">
+        </div>
+    </div>
+    <div id="data_table_div" class="table">
+        <table id="data_table" class="data_table">
+            <colgroup>
+                <col style="width: 10%"> <!-- request_id -->
+                <col style="width: 10%"> <!-- process -->
+                <col style="width: 10%"> <!-- input_data -->
+                <col style="width: 10%"> <!-- output_data -->
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>ID požadavku</th>
+                    <th>Proces</th>
+                    <th>Vstupní data</th>
+                    <th>Výstupní data</th>
+                </tr>
+            </thead>
+            <tbody id="data_table_body"></tbody>
+        </table>
+    </div>
+
+<script src="{{ url_for('src', path='data_script.js') }}"></script>
+
+<!-- <script>
+    const dataTableBody = document.getElementById("data_table_body");
+    const ws = new WebSocket(`ws://${location.host}/ws/data`);
+
+    const existingIDs = new Set();
+
+    ws.onmessage = function(event) {
+        console.log("[WebSocket] message received: ", event.data);
+        const dataList = JSON.parse(event.data);
+
+        dataList.forEach(item => {
+            if (existingIDs.has(item.request_id)) return;
+        
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${item.request_id}</td>
+                <td>${item.process_name}</td>
+                <td>
+                    <button class="input_btn action_btn" data_id="${item.request_id}">TXT
+                        <i class="fas fa-download"></i>
+                        </button>
+                        </td>
+                <td>
+                    souborů ( MB) <button class="output_btn action_btn" data_id="${item.request_id}">ZIP
+                        <i class="fas fa-download" title="stáhnout data"></i>
+                        </button>
+                        </td>
+            `;
+            dataTableBody.appendChild(row);
+            existingIDs.add(item.request_id);
+
+        });
+    };
+
+    dataTableBody.addEventListener("click", async (e) => { 
+        const request_id = e.target.getAttribute("data_id");
+        if (e.target.classList.contains("input_btn")) {
+                console.log(`Downloading input data for ${request_id}`);
+        } else if (e.target.classList.contains("output_btn")) {
+            console.log(`Downloading output data for ${request_id}`);
+
+            try {
+                const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
+
+                if (!res.ok) {
+                    console.error("error preparing ZIP file");
+                    return;
+                }
+
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = `/data-download/${request_id}`;
+                document.body.appendChild(iframe);
+
+            } catch (error) {
+                console.error("Download failed: ", error);
+            }
+        }
+    });
+
+    const idFilter = document.getElementById("request_id_filter");
+    const processFilter = document.getElementById("process_name_filter");
+    const tbody = document.getElementById("data_table_body");
+
+    function filterTable() {
+        const idValue = idFilter.value.toLowerCase();
+        const processValue = processFilter.value.toLowerCase();
+
+        Array.from(tbody.rows).forEach(row => {
+            const idCell = row.cells[0].textContent.toLowerCase();
+            const processCell = row.cells[1].textContent.toLowerCase();
+
+            const matchesId = idCell.includes(idValue);
+            const matchesProcess = processCell.includes(processValue);
+
+            row.style.display = (matchesId && matchesProcess) ? "" : "none";
+        });
+    }
+     
+    idFilter.addEventListener("input", filterTable);
+    processFilter.addEventListener("input", filterTable);
+
+</script> -->
+</body>
+</html>
