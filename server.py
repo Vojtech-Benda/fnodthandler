@@ -183,7 +183,7 @@ async def broadcast_files():
 async def handle_form(
     request: Request,
     pacs_select: str = Form(...),
-    input_uids: str = Form(...),
+    uid_list: str = Form(...),
     process_select: str = Form(...),
     notify_email: str = Form(...),
     custom_process_name: Optional[str] = Form(None)
@@ -191,7 +191,7 @@ async def handle_form(
     print(custom_process_name)
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
     pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
-    cleaned_uids = input_uids.replace("\r\n", "").replace("\n", "").strip().split(",")
+    cleaned_uids = uid_list.replace("\r\n", "").replace("\n", "").strip().split(",")
     datetime_now = datetime.now()
 
     new_job = Job(
