@@ -28,7 +28,7 @@ def format_job_string(job: Job, level: int = 0):
         job_string += (
             f" - {'Process:':<16}{job.process_name}\n"
             f" - {'Notify email:':<16}{job.notify_email}\n"
-            f" - {'UIDs:':<16}{job.series_uid_list}\n"
+            f" - {'UIDs:':<16}{job.uid_list}\n"
             )
     return job_string
 
@@ -49,7 +49,7 @@ Začátek: {job.start_time}
 Konec: {job.finish_time}
 Stav: {job.status}
 
-Zpracované DICOM UID:\n{",\n".join(job.series_uid_list)}
+Zpracované DICOM UID:\n{",\n".join(job.uid_list)}
 
 V případě problémů nebo dotazů se obraťte na vojtech.benda@fno.cz nebo fnodthandlerdev@gmail.com.
 

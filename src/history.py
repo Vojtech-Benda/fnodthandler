@@ -14,7 +14,7 @@ async def init_db():
                          pacs_ip TEXT,
                          pacs_port TEXT,
                          process_name TEXT,
-                         series_uid_list TEXT,
+                         uid_list TEXT,
                          notify_email TEXT,
                          date TEXT,
                          start_time TEXT,
@@ -30,7 +30,7 @@ async def write_job_to_db(job: Job):
         await db.execute(
             '''
             INSERT INTO jobs_history (
-             request_id, pacs_ae, pacs_ip, pacs_port, process_name, series_uid_list, notify_email, date, start_time, finish_time, status
+             request_id, pacs_ae, pacs_ip, pacs_port, process_name, uid_list, notify_email, date, start_time, finish_time, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (
                 job.request_id,
@@ -38,7 +38,7 @@ async def write_job_to_db(job: Job):
                 job.pacs['ip'], 
                 job.pacs['port'],
                 job.process_name,
-                ",".join(job.series_uid_list),
+                ",".join(job.uid_list),
                 job.notify_email,
                 job.date,
                 job.start_time,

@@ -23,9 +23,9 @@ ws.onmessage = function(event) {
                     </button>
                     </td>
             <td>
-                souborů ( MB) <button class="output_btn action_btn" data_id="${item.request_id}">ZIP
+                <button class="output_btn action_btn" data_id="${item.request_id}">ZIP
                     <i class="fas fa-download" title="stáhnout data"></i>
-                    </button>
+                    </button>( MB)
                     </td>
         `;
         dataTableBody.appendChild(row);

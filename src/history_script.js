@@ -8,7 +8,7 @@ const historyTable = document.getElementById("history_table");
             const row = document.createElement("tr");
             const status_class = `status_badge status_${job.status}`;
             const status_text = job.status.charAt(0).toUpperCase() + job.status.slice(1);
-            const uid_cell_text = job.series_uid_list.join(",<br>")
+            const uid_cell_text = job.uid_list.join(",<br>")
 
             row.innerHTML = `
                 <td>${job.request_id}</td>

@@ -12,7 +12,7 @@ ws.onmessage = function(event) {
     pending_jobs_table.innerHTML = '';
 
     if (current) {
-        const current_uid_cell_text = current.series_uid_list.join(",<br>")
+        const current_uid_cell_text = current.uid_list.join(",<br>")
         current_job_div.innerHTML = `
             <div class="job_card_inner">
                 <strong>ID:</strong> ${current.request_id}<br>
@@ -35,7 +35,7 @@ ws.onmessage = function(event) {
         const row = document.createElement('tr');
         const status_class = `status_badge status_${job.status}`;
         const status_text = job.status.charAt(0).toUpperCase() + job.status.slice(1);
-        const uid_cell_text = job.series_uid_list.join(",<br>")
+        const uid_cell_text = job.uid_list.join(",<br>")
 
         row.innerHTML = `
             <td>${job.request_id}</td>

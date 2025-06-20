@@ -87,12 +87,12 @@ async def websocket_history(websocket: WebSocket):
                     columns = [column[0] for column in cursor.description]
                     async for row in cursor:
                         job_dict = dict(zip(columns, row))
-                        if 'series_uid_list' in job_dict and job_dict['series_uid_list']:
-                            uids: str = job_dict['series_uid_list']
+                        if 'uid_list' in job_dict and job_dict['uid_list']:
+                            uids: str = job_dict['uid_list']
                             if ',' in uids:
-                                job_dict['series_uid_list'] = uids.split(',')
+                                job_dict['uid_list'] = uids.split(',')
                             else:
-                                job_dict["series_uid_list"] = [uids]
+                                job_dict["uid_list"] = [uids]
                         jobs.append(job_dict)
             await websocket.send_text(json.dumps(jobs))
             await asyncio.sleep(5)
@@ -181,19 +181,19 @@ async def broadcast_files():
 @app.post("/submit", response_class=HTMLResponse)
 async def handle_form(request: Request, 
                 pacs_select: str = Form(...), 
-                series_uids: str = Form(...),
+                input_uids: str = Form(...),
                 process_select: str = Form(...), 
                 notify_email: str = Form(...)):
     
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
     pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
-    cleaned_uids = series_uids.replace("\r\n", "").replace("\n", "").strip().split(",")
+    cleaned_uids = input_uids.replace("\r\n", "").replace("\n", "").strip().split(",")
     datetime_now = datetime.now()
     new_job = Job(request_id=request_id,
                   pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
                   process_name=process_select,
                   notify_email=notify_email,
-                  series_uid_list=cleaned_uids,
+                  uid_list=cleaned_uids,
                   date=datetime_now.strftime("%d-%m-%Y"))
     job_queue.append(new_job)
     fno_logger.info(f"added new job")
@@ -238,7 +238,7 @@ async def check_queue():
     
         # check for previously downloaded studies/series
         # download all/missing data
-        missing_uids = [uid for uid in current_job.series_uid_list 
+        missing_uids = [uid for uid in current_job.uid_list 
                         if not os.path.exists(os.path.join("./input", uid))]
         code = 0
         if len(missing_uids) != 0:
@@ -259,7 +259,7 @@ async def check_queue():
             fno_logger.debug(f"creating output directory \"{current_job.request_id}\"")
             os.makedirs(output_dir, exist_ok=True)
             
-            data_paths = [os.path.join("./input", uid) for uid in current_job.series_uid_list]
+            data_paths = [os.path.join("./input", uid) for uid in current_job.uid_list]
         
             current_job.status = "processing"
             await broadcast_job_queue(current_job)    

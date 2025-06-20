@@ -8,51 +8,62 @@
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body>
-<form action="/submit" method="post" id="job_form">
-    <div class="form_header_container">
-        <div class="form_field">
-            <label for="pacs_select">PACS server:</label>
-            <select name="pacs_select" id="pacs_select" required>
-                <option value="">--Vyberte PACS server--</option>
-                <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
-            </select>
+<div class="header_row">
+    
+    <form action="/submit" method="post" id="job_form">
+        <div class="form_header_container">
+            <div class="form_field">
+                <div>
+                    <label for="pacs_select">PACS server:</label>
+                    <select name="pacs_select" id="pacs_select" required>
+                        <option value="">--Vyberte PACS server--</option>
+                        <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="process_select">Proces:</label>
+                    <select name="process_select" id="proces_select" required>
+                        <option value="">--Vyberte proces--</option>
+                        <optgroup label="Konverze datového typu">
+                            <option value="dcm2mha">DICOM na MHA (dcm2mha)</option>
+                            <option value="dcm2nifti">DICOM na NIFTI (dcm2nifti)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="custom_process_name">Název procesu:</label>
+                    <input type="text" class="custom_process_name_input" id="custom_process_name_input" placeholder="Vlastní název procesu...">
+                </div>
+            
+                <div>
+                    <label for="notify_email">Email:</label>
+                    <input type="email" name="notify_email" id="notify_email" placeholder="jmeno.prijmeni@fno.cz" required/>
+                </div>
+            </div>
         </div>
         
-        <div class="form_field">
-            <label for="process_select">Proces:</label>
-            <select name="process_select" id="proces_select" required>
-                <option value="">--Vyberte proces--</option>
-                <optgroup label="Konverze datového typu">
-                    <option value="dcm2mha">DICOM na MHA</option>
-                    <option value="dcm2nifti">DICOM na NIFTI</option>
-                </optgroup>
-            </select>
+        <div>
+            <label for="uid_list">UID studie/série:</label>
+            <textarea name="uid_list" id="uid_list" rows="5" cols="50" class="uids_textarea"
+            placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
         </div>
-
+        
+        
         <div class="navigation_buttons">
+            <input type="submit" value="Poslat žádost"/>
             <a href="/history" class="navigation_button">Historie procesů</a>
-            <a href="/instructions" class="navigation_button">Instrukce</a>
+            <!-- <a href="/instructions" class="navigation_button">Instrukce</a> -->
+            <a href="/data" class="navigation_button">Zpracované data</a>
         </div>
-    </div>
         
-    <div>
-        <label for="series_uids">UID studie/série:</label>
-        <textarea name="series_uids" id="series_uids" rows="5" cols="50" 
-                placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
-    </div>
+        <div id="job_added_msg" style="margin-top: 10px; color: green;"></div>
+    <a href="/instructions" class="navigation_button">Instrukce</a>
 
-    <div>
-        <label for="notify_email">Email:</label>
-        <input type="email" name="notify_email" id="notify_email" placeholder="jmeno.prijmeni@fno.cz" required/>
-    </div>
-
-    <div>
-        <input type="submit" value="Poslat žádost"/>
-    </div>
-
-    <div id="job_added_msg" style="margin-top: 10px; color: green;"></div>
-</form>
-
+    </form>
+</div>
+    
 <h3>Aktuálně probíhající žádost</h3>
 <div id="current_job" class="job_card"></div>
 
