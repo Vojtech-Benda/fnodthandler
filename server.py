@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, File
 from fastapi.exceptions import HTTPException
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
+from typing import Optional
 
 import sys
 import os
@@ -98,7 +99,7 @@ async def websocket_history(websocket: WebSocket):
             await asyncio.sleep(5)
     except WebSocketDisconnect:
         fno_logger.info("history client disconnected")
-            
+
 
 @app.websocket("/ws/data")
 async def websocket_data(websocket: WebSocket):
@@ -114,7 +115,7 @@ async def websocket_data(websocket: WebSocket):
             await asyncio.sleep(3)
     except WebSocketDisconnect:
         fno_logger.info("data client disconnected")
-            
+
 
 @app.get("/", include_in_schema=False)
 def home_redirect():
@@ -169,7 +170,7 @@ async def broadcast_files():
         {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha"},
         {'request_id': "vg4vu008te", 'process_name': "dcm2mha"}
         ]
-    
+
     for client in clients:
         try:
             await client.send_text(json.dumps(job_data))
@@ -178,31 +179,39 @@ async def broadcast_files():
             clients.remove(client)
 
 
-@app.post("/submit", response_class=HTMLResponse)
-async def handle_form(request: Request, 
-                pacs_select: str = Form(...), 
-                input_uids: str = Form(...),
-                process_select: str = Form(...), 
-                notify_email: str = Form(...)):
-    
+@app.post("/submit", response_class=JSONResponse)
+async def handle_form(
+    request: Request,
+    pacs_select: str = Form(...),
+    input_uids: str = Form(...),
+    process_select: str = Form(...),
+    notify_email: str = Form(...),
+    custom_process_name: Optional[str] = Form(None)
+):
+    print(custom_process_name)
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
     pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
     cleaned_uids = input_uids.replace("\r\n", "").replace("\n", "").strip().split(",")
     datetime_now = datetime.now()
-    new_job = Job(request_id=request_id,
-                  pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
-                  process_name=process_select,
-                  notify_email=notify_email,
-                  uid_list=cleaned_uids,
-                  date=datetime_now.strftime("%d-%m-%Y"))
+
+    new_job = Job(
+        request_id=request_id,
+        pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
+        # process_name=custom_process_name_input if custom_process_name_input else process_select,
+        process_name=process_select,
+        notify_email=notify_email,
+        uid_list=cleaned_uids,
+        date=datetime_now.strftime("%d-%m-%Y"),
+    )
+
     job_queue.append(new_job)
     fno_logger.info(f"added new job")
     fno_logger.debug(utils.format_job_string(new_job, level=1))
     await broadcast_job_queue()
     fno_logger.debug("job queue table updated")
     return JSONResponse(content={"message": "Job submitted"})
-    
-    
+
+
 @app.post("/data-prepare/{request_id}")
 def prepare_zip(request_id: str):
     output_dir = Path("./output", request_id)
@@ -223,7 +232,7 @@ def prepare_zip(request_id: str):
                 zipf.write(fullpath, arcname=arcname)
     
     fno_logger.info(f"written zipfile {zip_path}")
-    
+
 @repeat_every(seconds=15)
 async def check_queue():
     fno_logger.info("checking queue...")
@@ -294,8 +303,8 @@ async def check_queue():
         fno_logger.info("no job to process")
         await broadcast_job_queue()
         fno_logger.debug("job queue table updated")
-        
-        
+
+
 @repeat_every(seconds=10, wait_first=10)
 def delete_file():
     check_dir = "./tes"
@@ -314,6 +323,3 @@ def delete_file():
             print(f"removing file: {path}")
         else:
             print(f"unable to remove file/directory: {path}")
-        
-        
-    

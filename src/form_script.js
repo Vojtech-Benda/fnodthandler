@@ -56,6 +56,10 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
     e.preventDefault();  // prevents default from submission
 
     const formData = new FormData(this);
+    for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`)
+
+    }
 
     try {
         const response = await fetch("/submit", {
@@ -65,6 +69,8 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
                 "X-Requested-With": "XMLHttpRequest"
             }
         });
+
+        console.log("Status:", response.status);
 
         if (!response.ok) throw new Error("Network response was not ok");
         const result = await response.json();
