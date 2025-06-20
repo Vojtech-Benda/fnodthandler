@@ -28,6 +28,7 @@ from src import utils
 from src import history
 from src.logger import setup_logger
 
+
 fno_logger = setup_logger("fnodthandler")
 
 
@@ -183,7 +184,7 @@ async def broadcast_files():
 async def handle_form(
     request: Request,
     pacs_select: str = Form(...),
-    input_uids: str = Form(...),
+    uid_list: str = Form(...),
     process_select: str = Form(...),
     notify_email: str = Form(...),
     custom_process_name: Optional[str] = Form(None)
@@ -191,14 +192,13 @@ async def handle_form(
     print(custom_process_name)
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
     pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
-    cleaned_uids = input_uids.replace("\r\n", "").replace("\n", "").strip().split(",")
+    cleaned_uids = uid_list.replace("\r\n", "").replace("\n", "").strip().split(",")
     datetime_now = datetime.now()
 
     new_job = Job(
         request_id=request_id,
         pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
-        # process_name=custom_process_name_input if custom_process_name_input else process_select,
-        process_name=process_select,
+        process_name=custom_process_name if custom_process_name else process_select,
         notify_email=notify_email,
         uid_list=cleaned_uids,
         date=datetime_now.strftime("%d-%m-%Y"),
@@ -295,9 +295,8 @@ async def check_queue():
         
         # send email about finished process
         utils.send_email(current_job)
-        
             
-        fno_logger.info(f"removed job from queue:")
+        fno_logger.info(f"removed job from queue")
         fno_logger.debug(utils.format_job_string(current_job, level=1))
     else:
         fno_logger.info("no job to process")
