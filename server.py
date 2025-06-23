@@ -63,6 +63,7 @@ app = server()
 templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
+output_data: list[str] = []
 clients: list[WebSocket] = []
 
 
@@ -148,6 +149,20 @@ def download_zip(request_id: str):
     return FileResponse(zip_path, filename=f"{request_id}.zip", 
                         media_type='application/zip', 
                         headers={"Content-Disposition": f'attachment; filename="{request_id}.zip"'})
+
+
+@app.post("/data-delete/{request_id}")
+def delete_zip(request_id: str):
+    zip_path = Path("./output", f"{request_id}.zip")
+    if not zip_path.exists():
+        fno_logger.error(f"ZIP file not found: {zip_path}")
+        raise HTTPException(status_code=404, detail="ZIP file not found")
+    
+    try:
+        os.remove(zip_path)
+        fno_logger.info(f"deleted ZIP file: {zip_path}")
+    except RuntimeError as err:
+        fno_logger.error(err)
 
 
 async def broadcast_job_queue(current_job=None):

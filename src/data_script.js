@@ -13,20 +13,20 @@ ws.onmessage = function(event) {
         if (existingIDs.has(item.request_id)) return;
     
         const row = document.createElement("tr");
-
+        row.id = `row_${item.request_id}`;
         row.innerHTML = `
             <td>${item.request_id}</td>
             <td>${item.process_name}</td>
             <td>
-                <button class="input_btn action_btn" data_id="${item.request_id}">TXT
-                    <i class="fas fa-download"></i>
-                    </button>
-                    </td>
-            <td>
-                <button class="output_btn action_btn" data_id="${item.request_id}">ZIP
+                <button class="output_btn action_btn" onclick="saveZipFile('${item.request_id}');">ZIP
                     <i class="fas fa-download" title="stáhnout data"></i>
-                    </button>(${item.file_size} MB)
-                    </td>
+                </button>(${item.file_size} MB)
+            </td>
+            <td>
+                <button class="delete_btn action_btn" onclick="deleteZipFile('${item.request_id}');">
+                    <i class="fas fa-trash" aria-hidden="true" title="smazat data"></i>
+                </button>
+            </td>
         `;
         dataTableBody.appendChild(row);
         existingIDs.add(item.request_id);
@@ -34,31 +34,68 @@ ws.onmessage = function(event) {
     });
 };
 
-dataTableBody.addEventListener("click", async (e) => { 
-    const request_id = e.target.getAttribute("data_id");
-    if (e.target.classList.contains("input_btn")) {
-            console.log(`Downloading input data for ${request_id}`);
-    } else if (e.target.classList.contains("output_btn")) {
-        console.log(`Downloading output data for ${request_id}`);
+async function saveZipFile(request_id) {
+    console.log(`Requesting output data for ${request_id}`);
 
-        try {
-            const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
-
-            if (!res.ok) {
-                console.error("error preparing ZIP file");
-                return;
-            }
-
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = `/data-download/${request_id}`;
-            document.body.appendChild(iframe);
-
-        } catch (error) {
-            console.error("Download failed: ", error);
+    try {
+        const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
+        
+        if (!res.ok) {
+            console.error("error downloading ZIP file");
+            return;
         }
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `/data-download/${request_id}`;
+        document.body.appendChild(iframe);
+    } catch (error) {
+        console.error("Download failed: ", error);
     }
-});
+};
+
+async function deleteZipFile(request_id) {
+    console.log(`Requesting deletion of ${request_id} output data`);
+
+    try {
+        // console.log("deletion request");
+        const res = await fetch(`/data-delete/${request_id}`, {method: "POST"});
+
+        if (!res.ok) {
+            console.error("error deleting ZIP file");
+            return;
+        }
+
+    } catch (error) {
+        console.error("Request for deletion failed: ", error);
+    }
+};
+
+// dataTableBody.addEventListener("click", async (e) => { 
+//     const request_id = e.target.getAttribute("data_id");
+//     if (e.target.classList.contains("input_btn")) {
+//             console.log(`Downloading input data for ${request_id}`);
+//     } else if (e.target.classList.contains("output_btn")) {
+//         console.log(`Downloading output data for ${request_id}`);
+
+//         try {
+//             const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
+
+//             if (!res.ok) {
+//                 console.error("error preparing ZIP file");
+//                 return;
+//             }
+
+//             const iframe = document.createElement('iframe');
+//             iframe.style.display = 'none';
+//             iframe.src = `/data-download/${request_id}`;
+//             document.body.appendChild(iframe);
+
+//         } catch (error) {
+//             console.error("Download failed: ", error);
+//         }
+//     }
+// });
 
 const idFilter = document.getElementById("request_id_filter");
 const processFilter = document.getElementById("process_name_filter");
