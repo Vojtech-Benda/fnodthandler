@@ -11,20 +11,29 @@ ws.onmessage = function(event) {
     current_job_div.innerHTML = '';
     pending_jobs_table.innerHTML = '';
 
+
+    // <div class="card_row">${current_uid_cell_text}</div>
+    // <div class="card_row">${current.finish_time}</div>
+    // <div class="job_card_inner">
     if (current) {
-        const current_uid_cell_text = current.uid_list.join(",<br>")
+        // const current_uid_cell_text = current.uid_list.join(",<br>");
+        // current_job_div.innerHTML = `
+        //         <div class="card_row"><strong>ID požadavku:</strong>${current.request_id}</div>
+        //         <div class="card_row"><strong>PACS:</strong>${current.pacs.aetitle} ${current.pacs.ip}:${current.pacs.port}</div>
+        //         <div class="card_row"><strong>Proces:</strong>${current.process_name}</div>
+        //         <div class="card_row"><strong>Email:</strong>${current.notify_email}</div>
+        //         <div class="card_row"><strong>Datum:</strong>${current.date}</div>
+        //         <div class="card_row"><strong>Čas začátku:</strong>${current.start_time}</div>
+        //         <div class="card_row"><span class="status_badge status_${current.status}">${current.status}</span></div>
+            
+        // `;
         current_job_div.innerHTML = `
-            <div class="job_card_inner">
-                <strong>ID:</strong> ${current.request_id}<br>
-                <strong>PACS:</strong> ${current.pacs.aetitle} ${current.pacs.ip}:${current.pacs.port}<br>
-                <strong>Process:</strong> ${current.process_name}<br>
-                <strong>UID:</strong> ${current_uid_cell_text}<br>
-                <strong>Email:</strong> ${current.notify_email}<br>
-                <strong>Datum vytvoření:</strong> ${current.date}<br>
-                <strong>Čas začátku:</strong> ${current.start_time}<br>
-                <strong>Čas dokončení:</strong> ${current.finish_time}<br>
-                <strong>Status:</strong> <span class="status_badge status_${current.status}">${current.status}</span>
-            </div>
+                <div class="card_row"><strong>ID požadavku:</strong>a1b2c3d4e5</div>
+                <div class="card_row"><strong>PACS:</strong>ORTHANC 192.168.100.100:2000</div>
+                <div class="card_row"><strong>Proces:</strong>konverze dcm2mha</div>
+                <div class="card_row"><strong>Datum:</strong>20-11-2025</div>
+                <div class="card_row"><strong>Čas začátku:</strong>19:20:50</div>
+                <div class="card_row"><span class="status_badge status_done">done</span></div>
         `;
     } else {
         current_job_div.innerHTML = `<p> Žádná aktivní žádost</p>`;
