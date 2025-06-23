@@ -2,7 +2,11 @@ import os
 import smtplib, ssl
 from email.message import EmailMessage
 from .job import Job
+from pathlib import Path
+from .logger import setup_logger
+import zipfile
 
+fno_logger = setup_logger("fnodthandler")
 
 def split_pacs_fields(pacs_fields: str):
     tokens = pacs_fields.split('-')
@@ -65,3 +69,19 @@ Tato zpráva byla vytvořena automaticky. Neodpovídejte na ni.
         server.login(sender_email, sender_email_pw)
         server.send_message(msg)
     
+
+def zip_data(request_id: str):
+    output_dir = Path("./output", request_id)
+    zip_path = Path("./output", f"{request_id}.zip")
+    
+    cond = -1
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(output_dir):
+            for file in files:
+                fullpath = os.path.join(root, file)
+                arcname = os.path.relpath(fullpath, output_dir)
+                zipf.write(fullpath, arcname=arcname)
+        zipf.close()
+        cond = 0
+        file_size = os.stat(zip_path).st_size / 1000000 # bytes to MB
+    return cond, file_size

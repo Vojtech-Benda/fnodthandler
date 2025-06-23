@@ -10,6 +10,7 @@ from typing import Optional
 
 import sys
 import os
+import glob
 import random
 import string
 import json
@@ -19,6 +20,7 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 import zipfile
+import traceback
 
 
 from src.algorithms import dicom_convert
@@ -63,7 +65,7 @@ app = server()
 templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
-output_data: list[str] = []
+output_data: list[dict[str, str, str, str, float]] = []
 clients: list[WebSocket] = []
 
 
@@ -107,14 +109,35 @@ async def websocket_history(websocket: WebSocket):
 async def websocket_data(websocket: WebSocket):
     await websocket.accept()
     try:
+        files = glob.glob('./output/*.zip')
+        number_of_zips = len(files)
+        
         while True:
-            job_data = [
-                {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha", 'file_size': 5},
-                {'request_id': "vg4vu008te", 'process_name': "dcm2mha", 'file_size': 5}
+            number_of_pushed_data = len(output_data)
+            if number_of_zips != number_of_pushed_data:
+                existing_ids = [item.get('request_id') for item in output_data]
+                
+                ids = [
+                    request_id for path in files if (request_id := os.path.basename(path).removesuffix(".zip")) not in existing_ids
                 ]
-            await websocket.send_text(json.dumps(job_data))
-            fno_logger.info("job data sent to /data")
-            await asyncio.sleep(3)
+                async with aiosqlite.connect('jobs_history.db') as db:
+                    sql_comm = f"SELECT request_id, process_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(ids))}) ORDER BY date DESC, finish_time DESC"
+                    async with db.execute(sql_comm, ids) as cursor:
+                        columns = [column[0] for column in cursor.description]
+                        async for row in cursor:
+                            data = dict(zip(columns, row))
+                            fs = os.stat(os.path.join("./output", f"{data['request_id']}.zip")).st_size / 1_000_000
+                            output_data.append({
+                                'request_id': data['request_id'],
+                                'process_name': data['process_name'],
+                                'date': data['date'],
+                                'finish_time': data['finish_time'],
+                                'file_size': f"{fs:.2f}"
+                            })
+                await websocket.send_text(json.dumps(output_data))
+                fno_logger.debug("updated processed data table /data")
+                
+            await asyncio.sleep(15)
     except WebSocketDisconnect:
         fno_logger.info("data client disconnected")
 
@@ -161,6 +184,11 @@ def delete_zip(request_id: str):
     try:
         os.remove(zip_path)
         fno_logger.info(f"deleted ZIP file: {zip_path}")
+        
+        idx = next((i for i, item in enumerate(output_data) if item['id'] == request_id), None)
+        if idx:
+            output_data.pop(idx)
+            fno_logger.debug(f"removed output for {request_id}")
     except RuntimeError as err:
         fno_logger.error(err)
 
@@ -179,20 +207,8 @@ async def broadcast_job_queue(current_job=None):
         except Exception as e:
             fno_logger.error(f"failed to send to a client: {e}")
             clients.remove(client)
-
-
-async def broadcast_files():
-    job_data = [
-        {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha"},
-        {'request_id': "vg4vu008te", 'process_name': "dcm2mha"}
-        ]
-
-    for client in clients:
-        try:
-            await client.send_text(json.dumps(job_data))
-        except Exception as e:
-            fno_logger.error(f"failed to send to a client: {e}")
-            clients.remove(client)
+            
+    fno_logger.debug("job queue updated")
 
 
 @app.post("/submit", response_class=JSONResponse)
@@ -223,30 +239,75 @@ async def handle_form(
     fno_logger.info(f"added new job")
     fno_logger.debug(utils.format_job_string(new_job, level=1))
     await broadcast_job_queue()
-    fno_logger.debug("job queue table updated")
     return JSONResponse(content={"message": "Job submitted"})
 
 
-@app.post("/data-prepare/{request_id}")
-def prepare_zip(request_id: str):
-    output_dir = Path("./output", request_id)
-    zip_path = Path("./output", f"{request_id}.zip")
+async def process_job(job: Job):
+    job.status = "downloading"
+    job.start_time = datetime.now().strftime("%H:%M:%S")
     
-    if zip_path.exists():
-        fno_logger.info(f"zip file for {request_id} exists")
-        return
+    await broadcast_job_queue(job)
     
-    if not output_dir.exists():
-        raise HTTPException(status_code=404, detail="Output not found")
+    requested_uids = [uid for uid in job.uid_list if not os.path.exists(os.path.join("./input", uid))]
+    code = 0
+    if len(requested_uids) != 0:
+        fno_logger.debug(f"downloading data for:\n{",\n".join(requested_uids)}")
+        code = download_dcm(job.pacs, requested_uids)
+    else:
+        fno_logger.debug(f"all {job.request_id} data found in ./input")
     
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(output_dir):
-            for file in files:
-                fullpath = os.path.join(root, file)
-                arcname = os.path.relpath(fullpath, output_dir)
-                zipf.write(fullpath, arcname=arcname)
-    
-    fno_logger.info(f"written zipfile {zip_path}")
+    if code == -1:
+        job.status = "fail"
+
+    # 0 - all is good
+    # 1 - some data might be missing, ie not found on PACS
+    # -1 - none were downloaded when needed
+    #FIXME: improve the return codes
+    output_dir = Path("./output", job.request_id)
+    if code == 0 or code == 1:
+        os.makedirs(output_dir, exist_ok=True)
+        data_paths = [os.path.join("./input", uid) for uid in job.uid_list]
+        job.status = "processing"
+        
+        await broadcast_job_queue(job)
+        
+        fno_logger.info(f"starting process {job.process_name}...")
+        cond = dicom_convert.dcm_convert(data_paths, "mha", output_dir=output_dir)
+        
+        if cond == 0:
+            job.status = "done"
+        elif cond == -1:
+            job.status = "fail"
+            
+        job.finish_time = datetime.now().strftime("%H:%M:%S")
+        
+        await broadcast_job_queue(job)
+        
+        try:
+            await history.write_job_to_db(job)
+            fno_logger.debug("job written to database")
+        except Exception as e:
+            fno_logger.error(f"failed tow rite job to database: {e}")
+            traceback.print_exc()
+
+        fno_logger.debug("sending email")
+        utils.send_email(job)
+        
+        fno_logger.info("removed job from queue")
+        fno_logger.debug(utils.format_job_string(job, level=1))
+        
+        fno_logger.debug(f"zipping output data {job.request_id}")
+        cond, file_size = utils.zip_data(job.request_id)
+        
+        if cond == 0:
+            output_data.append({
+                'request_id': job.request_id,
+                'process_name': job.process_name,
+                'file_size': file_size
+            })
+        else:
+            fno_logger.error(f"error while zipping data {job.request_id}")
+            
 
 @repeat_every(seconds=15)
 async def check_queue():
@@ -254,86 +315,28 @@ async def check_queue():
     if len(job_queue) != 0:
         fno_logger.info(f"found {len(job_queue)} jobs")
         current_job = job_queue.pop(0)
-        current_job.status = "downloading"
-        current_job.start_time = datetime.now().strftime("%H:%M:%S")
-        
-        await broadcast_job_queue(current_job)
-        fno_logger.debug("job queue table updated")
-    
-        # check for previously downloaded studies/series
-        # download all/missing data
-        missing_uids = [uid for uid in current_job.uid_list 
-                        if not os.path.exists(os.path.join("./input", uid))]
-        code = 0
-        if len(missing_uids) != 0:
-            fno_logger.debug(f"downloading {",\n".join(missing_uids)} data")
-            code = download_dcm(current_job.request_id, current_job.pacs, missing_uids)
-        else:
-            fno_logger.debug(f"all {current_job.request_id} data found in ./input")
-        
-        if code == -1:
-            current_job.status == "fail"
+        await process_job(current_job)
             
-        # 0 - all is good
-        # 1 - some data might be missing, ie not found on PACS
-        # -1 - none were downloaded when needed
-        #FIXME: improve the return codes
-        if code == 0 or code == 1:
-            output_dir = f"./output/{current_job.request_id}"
-            fno_logger.debug(f"creating output directory \"{current_job.request_id}\"")
-            os.makedirs(output_dir, exist_ok=True)
-            
-            data_paths = [os.path.join("./input", uid) for uid in current_job.uid_list]
-        
-            current_job.status = "processing"
-            await broadcast_job_queue(current_job)    
-            fno_logger.info(f"starting process {current_job.process_name}...")
-            cond = dicom_convert.dcm_convert(data_paths, "mha", output_dir=output_dir)
-        
-        if cond == 0:
-            current_job.status = "done"
-        elif cond == -1:
-            current_job.status == "fail"
-        
-        current_job.finish_time = datetime.now().strftime("%H:%M:%S")
-        await broadcast_job_queue(current_job)
-        fno_logger.debug("job queue table updated")
-        
-        try:
-            await history.write_job_to_db(current_job)
-            fno_logger.debug("job written to .db")
-            
-        except Exception as e:
-            fno_logger.error(f"failed to write job to DB: {e}")
-            import traceback
-            traceback.print_exc()    
-        
-        # send email about finished process
-        utils.send_email(current_job)
-            
-        fno_logger.info(f"removed job from queue")
-        fno_logger.debug(utils.format_job_string(current_job, level=1))
     else:
         fno_logger.info("no job to process")
         await broadcast_job_queue()
-        fno_logger.debug("job queue table updated")
-
-
-@repeat_every(seconds=10, wait_first=10)
-def delete_file():
-    check_dir = "./tes"
-    files = os.listdir(check_dir)
-    print(files)
-    if len(files) == 0:
-        return
-    for f in files:
         
-        path = Path(check_dir + "/" + f)
-        if path.is_dir():
-            shutil.rmtree(path)
-            print(f"removing directory: {path}")
-        elif path.is_file():
-            os.remove(path)
-            print(f"removing file: {path}")
-        else:
-            print(f"unable to remove file/directory: {path}")
+            
+# @repeat_every(seconds=10, wait_first=10)
+# def delete_file():
+#     check_dir = "./tes"
+#     files = os.listdir(check_dir)
+#     print(files)
+#     if len(files) == 0:
+#         return
+#     for f in files:
+        
+#         path = Path(check_dir + "/" + f)
+#         if path.is_dir():
+#             shutil.rmtree(path)
+#             print(f"removing directory: {path}")
+#         elif path.is_file():
+#             os.remove(path)
+#             print(f"removing file: {path}")
+#         else:
+#             print(f"unable to remove file/directory: {path}")

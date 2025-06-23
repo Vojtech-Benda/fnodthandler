@@ -42,7 +42,7 @@ input[type="email"] {
 
 .uids_textarea {
     padding: 8px 10px;
-    width: 500px;
+    width: 655;
     min-height: 50px;
     max-height: 300px;
     resize: vertical;
@@ -70,6 +70,7 @@ input[type="submit"]:hover {
 }
 
 .form_header_container {
+    width: 655px;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;

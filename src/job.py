@@ -10,4 +10,4 @@ class Job(BaseModel):
     date: str = ""
     start_time: str = ""
     finish_time: str = ""
-    status: bool = "pending"
+    status: str = "pending"

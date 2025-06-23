@@ -6,9 +6,9 @@ const ws = new WebSocket(`ws://${location.host}/ws/data`);
 const existingIDs = new Set();
 
 ws.onmessage = function(event) {
-    console.log("[WebSocket] message received: ", event.data);
     const dataList = JSON.parse(event.data);
-
+    console.log("[WebSocket] message received request_ids: ", dataList.length);
+    
     dataList.forEach(item => {
         if (existingIDs.has(item.request_id)) return;
     
@@ -17,6 +17,8 @@ ws.onmessage = function(event) {
         row.innerHTML = `
             <td>${item.request_id}</td>
             <td>${item.process_name}</td>
+            <td>${item.date}</td>
+            <td>${item.finish_time}</td>
             <td>
                 <button class="output_btn action_btn" onclick="saveZipFile('${item.request_id}');">ZIP
                     <i class="fas fa-download" title="stáhnout data"></i>
@@ -38,12 +40,12 @@ async function saveZipFile(request_id) {
     console.log(`Requesting output data for ${request_id}`);
 
     try {
-        const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
+    //     const res = await fetch(`/data-prepare/${request_id}`, {method: "POST"});
         
-        if (!res.ok) {
-            console.error("error downloading ZIP file");
-            return;
-        }
+    //     if (!res.ok) {
+    //         console.error("error downloading ZIP file");
+    //         return;
+    //     }
 
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';

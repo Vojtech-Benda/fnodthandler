@@ -13,7 +13,7 @@ receiver_aetitle = os.getenv("RECEIVER_AE_TITLE")
 receiver_store_port = os.getenv("RECEIVER_STORE_PORT")
 fno_logger.info(f"movescu destination is {receiver_aetitle}:{receiver_store_port}")
 
-def download_dcm(request_id: str, pacs: dict, series_uids: list):
+def download_dcm(pacs: dict, series_uids: list):
     result = None
     failed_series = []
     for serie_uid in series_uids:
