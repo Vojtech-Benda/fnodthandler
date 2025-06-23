@@ -108,8 +108,8 @@ async def websocket_data(websocket: WebSocket):
     try:
         while True:
             job_data = [
-                {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha"},
-                {'request_id': "vg4vu008te", 'process_name': "dcm2mha"}
+                {'request_id': "sn4b4bk6xb", 'process_name': "dcm2mha", 'file_size': 5},
+                {'request_id': "vg4vu008te", 'process_name': "dcm2mha", 'file_size': 5}
                 ]
             await websocket.send_text(json.dumps(job_data))
             fno_logger.info("job data sent to /data")
