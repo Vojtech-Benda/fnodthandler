@@ -86,7 +86,7 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
         console.log("Job submitted:", result.message);
 
         this.reset();
-        document.getElementById("job_added_msg").textContent = "Požadavek přidán!";
+        // document.getElementById("job_added_msg").textContent = "Požadavek přidán!";
     } catch (error) {
         console.error("Failed to submit job:", error);
     }
