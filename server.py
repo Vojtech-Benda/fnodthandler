@@ -44,8 +44,10 @@ def server():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await check_queue() # needs to run once to register with lifespan and FastAPI
+    await check_output_data()
     # await delete_file()
     app.add_event_handler("startup", check_queue)
+    app.add_event_handler("startup", check_output_data)
     # app.add_event_handler("startup", delete_file)
     
     if not os.path.exists("jobs_history.db"):
@@ -109,34 +111,9 @@ async def websocket_history(websocket: WebSocket):
 async def websocket_data(websocket: WebSocket):
     await websocket.accept()
     try:
-        files = glob.glob('./output/*.zip')
-        number_of_zips = len(files)
-        
         while True:
-            number_of_pushed_data = len(output_data)
-            if number_of_zips != number_of_pushed_data:
-                existing_ids = [item.get('request_id') for item in output_data]
-                
-                ids = [
-                    request_id for path in files if (request_id := os.path.basename(path).removesuffix(".zip")) not in existing_ids
-                ]
-                async with aiosqlite.connect('jobs_history.db') as db:
-                    sql_comm = f"SELECT request_id, process_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(ids))}) ORDER BY date DESC, finish_time DESC"
-                    async with db.execute(sql_comm, ids) as cursor:
-                        columns = [column[0] for column in cursor.description]
-                        async for row in cursor:
-                            data = dict(zip(columns, row))
-                            fs = os.stat(os.path.join("./output", f"{data['request_id']}.zip")).st_size / 1_000_000
-                            output_data.append({
-                                'request_id': data['request_id'],
-                                'process_name': data['process_name'],
-                                'date': data['date'],
-                                'finish_time': data['finish_time'],
-                                'file_size': f"{fs:.2f}"
-                            })
-                await websocket.send_text(json.dumps(output_data))
-                fno_logger.debug("updated processed data table /data")
-                
+            await websocket.send_text(json.dumps(output_data))
+            fno_logger.debug("updated processed data table /data")
             await asyncio.sleep(15)
     except WebSocketDisconnect:
         fno_logger.info("data client disconnected")
@@ -182,13 +159,13 @@ def delete_zip(request_id: str):
         raise HTTPException(status_code=404, detail="ZIP file not found")
     
     try:
-        os.remove(zip_path)
-        fno_logger.info(f"deleted ZIP file: {zip_path}")
-        
-        idx = next((i for i, item in enumerate(output_data) if item['id'] == request_id), None)
+        idx = next((i for i, item in enumerate(output_data) if item['request_id'] == request_id), None)
         if idx:
             output_data.pop(idx)
-            fno_logger.debug(f"removed output for {request_id}")
+            fno_logger.info(f"removed output for {request_id}")
+            os.remove(zip_path)
+            fno_logger.info(f"deleted ZIP file: {zip_path}")
+    
     except RuntimeError as err:
         fno_logger.error(err)
 
@@ -209,6 +186,18 @@ async def broadcast_job_queue(current_job=None):
             clients.remove(client)
             
     fno_logger.debug("job queue updated")
+
+
+# async def broadcast_output_files():
+#     if len(output_data) != 0:
+#         fno_logger.info(f"broadcasting {len(output_data)} files to /data table")
+        
+#         for client in clients:
+#             try:
+#                 await client.send_json(json.dumps(output_data))
+#             except Exception as e:
+#                 fno_logger.error(f"failed to send output_data json to client: {e}")
+#                 clients.remove(client)
 
 
 @app.post("/submit", response_class=JSONResponse)
@@ -321,6 +310,32 @@ async def check_queue():
         fno_logger.info("no job to process")
         await broadcast_job_queue()
         
+            
+@repeat_every(seconds=15)
+async def check_output_data():
+    fno_logger.info("checking output data...")
+    
+    files = glob.glob('./output/*.zip')
+    current_count = len(output_data)
+    
+    if current_count != len(files):
+        existing_ids = [item.get('request_id') for item in output_data]
+        new_ids = [request_id for path in files if (request_id := Path(path).stem) not in existing_ids]
+        async with aiosqlite.connect('jobs_history.db') as db:
+                    sql_comm = f"SELECT request_id, process_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(new_ids))}) ORDER BY date DESC, finish_time DESC"
+                    async with db.execute(sql_comm, new_ids) as cursor:
+                        columns = [column[0] for column in cursor.description]
+                        async for row in cursor:
+                            data = dict(zip(columns, row))
+                            fs = os.stat(os.path.join("./output", f"{data['request_id']}.zip")).st_size / 1_000_000
+                            output_data.append({
+                                'request_id': data['request_id'],
+                                'process_name': data['process_name'],
+                                'date': data['date'],
+                                'finish_time': data['finish_time'],
+                                'file_size': f"{fs:.2f}"
+                            })
+    
             
 # @repeat_every(seconds=10, wait_first=10)
 # def delete_file():
