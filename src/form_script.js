@@ -1,5 +1,7 @@
 const current_job_div = document.getElementById("current_job");
 const pending_jobs_table = document.getElementById("pending_jobs");
+const uidFileupBtn = document.getElementById("uid_fileup_btn");
+uidFileupBtn.addEventListener("change", updateUidTextArea);
 const ws = new WebSocket(`ws://${location.host}/ws/jobs`);
 
 ws.onmessage = function(event) {
@@ -91,3 +93,21 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
         console.error("Failed to submit job:", error);
     }
 });
+
+
+function updateUidTextArea(event) {
+    const uidListTextarea = document.getElementById("uid_list");
+    uidListTextarea.textContent = "";
+
+    const file = event.target.files[0];
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        uidListTextarea.textContent = reader.result;
+    };
+    reader.onerror = () => {
+        console.log("error reading file");
+    };
+
+    reader.readAsText(file);
+};

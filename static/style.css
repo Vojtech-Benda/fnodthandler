@@ -48,6 +48,12 @@ input[type="email"] {
     resize: vertical;
 }
 
+.uid_fileup_btn {
+    border: white;
+    margin-top: 5px;
+    padding: 0px;
+}
+
 input[type="submit"] {
     font-family: Arial, sans-serif;
     font-size: 1em;
