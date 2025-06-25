@@ -1,15 +1,25 @@
 /*data_style.css */
 
-.header_title {
+body {
     font-family: Arial, sans-serif;
+    background-color: #f6f6f6;
+    margin: 0;
+    padding: 20px;
+}
+
+.header_title {
+    /* font-family: Arial, sans-serif; */
     font-size: 1.5rem;
     color: #333;
     margin-bottom: 10px;
 }
 
 .filter_row {
+    width: fit-content;
+    min-width: 1000px;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-direction: row;
     gap: 20px;
     align-items: center;
     margin-bottom: 5px;
@@ -104,4 +114,23 @@
 
 .data_table tbody td button {
     margin-right: 8px;
+}
+
+.navigation_button {
+    display: block;
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
+    width: 175px;
+}
+
+.navigation_button:hover {
+    background-color: #0056b3;
 }
