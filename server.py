@@ -102,7 +102,7 @@ async def websocket_history(websocket: WebSocket):
                                 job_dict["uid_list"] = [uids]
                         jobs.append(job_dict)
             await websocket.send_text(json.dumps(jobs))
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
     except WebSocketDisconnect:
         fno_logger.info("history client disconnected")
 
@@ -292,7 +292,9 @@ async def process_job(job: Job):
             output_data.append({
                 'request_id': job.request_id,
                 'process_name': job.process_name,
-                'file_size': file_size
+                'date': job.date,
+                'finish_time': job.finish_time,
+                'file_size': f"{file_size:.2f}"
             })
         else:
             fno_logger.error(f"error while zipping data {job.request_id}")
@@ -328,13 +330,8 @@ async def check_output_data():
                         async for row in cursor:
                             data = dict(zip(columns, row))
                             fs = os.stat(os.path.join("./output", f"{data['request_id']}.zip")).st_size / 1_000_000
-                            output_data.append({
-                                'request_id': data['request_id'],
-                                'process_name': data['process_name'],
-                                'date': data['date'],
-                                'finish_time': data['finish_time'],
-                                'file_size': f"{fs:.2f}"
-                            })
+                            data['file_size'] = f"{fs:.2f}"
+                            output_data.append(data)
     
             
 # @repeat_every(seconds=10, wait_first=10)

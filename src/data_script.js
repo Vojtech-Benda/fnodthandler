@@ -24,7 +24,6 @@ ws.onmessage = function(event) {
                     <i class="fas fa-download" title="stáhnout data"></i>
                 </button>(${item.file_size} MB)
             </td>
-
         `;
 
             // <td>

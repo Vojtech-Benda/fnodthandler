@@ -49,6 +49,7 @@ input[type="email"] {
 }
 
 .uid_fileup_btn {
+    width: fit-content;
     border: white;
     margin-top: 5px;
     padding: 0px;
