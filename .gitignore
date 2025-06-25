@@ -9,3 +9,4 @@ output/
 jobs_history.db
 tests/
 .env
+test_uid.txt
