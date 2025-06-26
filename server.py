@@ -6,7 +6,6 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, File
 from fastapi.exceptions import HTTPException
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
-from typing import Optional
 
 import sys
 import os
@@ -23,7 +22,9 @@ import zipfile
 import traceback
 
 
-from src.algorithms import dicom_convert
+from src.algorithms.proceses import PROCESS_DISPATCH
+
+# from src.algorithms import dicom_convert
 from src.download_dcm import download_dcm
 from src.job import Job
 from src import utils
@@ -68,19 +69,22 @@ templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
 output_data: list[dict[str, str, str, str, float]] = []
-clients: list[WebSocket] = []
+# clients: list[WebSocket] = []
+clients_jobs: list[WebSocket] = []
+clients_history: list[WebSocket] = []
+clients_data: list[WebSocket] = []
 
 
 @app.websocket("/ws/jobs")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    clients.append(websocket)
+    clients_jobs.append(websocket)
     await websocket.send_text(json.dumps([job.__dict__ for job in job_queue]))
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        clients.remove(websocket)
+        clients_jobs.remove(websocket)
 
 
 @app.websocket("/ws/history")
@@ -178,25 +182,25 @@ async def broadcast_job_queue(current_job=None):
     if len(job_data['pending_jobs']) != 0:
         fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
     
-    for client in clients:
+    for client in clients_jobs:
         try:
             await client.send_text(json.dumps(job_data))
         except Exception as e:
             fno_logger.error(f"failed to send to a client: {e}")
-            clients.remove(client)
+            clients_jobs.remove(client)
             
     fno_logger.debug("job queue updated")
 
 
-# async def broadcast_output_files():
+# async def broadcast_zip_files():
 #     if len(output_data) != 0:
-#         fno_logger.info(f"broadcasting {len(output_data)} files to /data table")
+#         fno_logger.info(f"broadcasting {len(output_data)} ZIP files")
         
 #         for client in clients:
 #             try:
-#                 await client.send_json(json.dumps(output_data))
+#                 await client.send_text(json.dumps(output_data))
 #             except Exception as e:
-#                 fno_logger.error(f"failed to send output_data json to client: {e}")
+#                 fno_logger.error(f"failed to send ZIP files to client: {e}")
 #                 clients.remove(client)
 
 
@@ -207,9 +211,7 @@ async def handle_form(
     uid_list: str = Form(...),
     process_select: str = Form(...),
     notify_email: str = Form(...),
-    custom_process_name: Optional[str] = Form(None)
 ):
-    print(custom_process_name)
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
     pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
     cleaned_uids = uid_list.replace("\r\n", "").replace("\n", "").strip().split(",")
@@ -218,7 +220,7 @@ async def handle_form(
     new_job = Job(
         request_id=request_id,
         pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
-        process_name=custom_process_name if custom_process_name else process_select,
+        process_name=process_select,
         notify_email=notify_email,
         uid_list=cleaned_uids,
         date=datetime_now.strftime("%d-%m-%Y"),
@@ -261,7 +263,9 @@ async def process_job(job: Job):
         await broadcast_job_queue(job)
         
         fno_logger.info(f"starting process {job.process_name}...")
-        cond = dicom_convert.dcm_convert(data_paths, "mha", output_dir=output_dir)
+        cond = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
+        # cond = processor(data_paths, output_dir)
+        # cond = dicom_convert.dcm2other(data_paths, "mha", output_dir=output_dir)
         
         if cond == 0:
             job.status = "done"
@@ -288,8 +292,10 @@ async def process_job(job: Job):
         fno_logger.debug(f"zipping output data {job.request_id}")
         cond, file_size = utils.zip_data(job.request_id)
         
+        # if cond != 0:
+            
         if cond == 0:
-            output_data.append({
+            output_data.insert(0, {
                 'request_id': job.request_id,
                 'process_name': job.process_name,
                 'date': job.date,
