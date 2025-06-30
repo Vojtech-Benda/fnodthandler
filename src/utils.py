@@ -1,9 +1,9 @@
 import os
 import smtplib, ssl
 from email.message import EmailMessage
-from .job import Job
+from src.job import Job
 from pathlib import Path
-from .logger import setup_logger
+from src.logger import setup_logger
 import zipfile
 
 fno_logger = setup_logger("fnodthandler")

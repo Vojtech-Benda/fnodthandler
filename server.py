@@ -22,11 +22,12 @@ import zipfile
 import traceback
 
 
-from src.algorithms.proceses import PROCESS_DISPATCH
+from src.process import PROCESS_DISPATCH
+from src.process_result import ProcessResult, StatusCodes
 
 # from src.algorithms import dicom_convert
 from src.download_dcm import download_dcm
-from src.job import Job
+from src.job import Job, ZipData
 from src import utils
 from src import history
 from src.logger import setup_logger
@@ -68,7 +69,7 @@ app = server()
 templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
-output_data: list[dict[str, str, str, str, float]] = []
+output_data: list[ZipData] = []
 # clients: list[WebSocket] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
@@ -114,13 +115,17 @@ async def websocket_history(websocket: WebSocket):
 @app.websocket("/ws/data")
 async def websocket_data(websocket: WebSocket):
     await websocket.accept()
+    clients_data.append(websocket)
+    await websocket.send_text(json.dumps([data.__dict__ for data in output_data]))
     try:
         while True:
-            await websocket.send_text(json.dumps(output_data))
+            # await websocket.send_text(json.dumps(output_data))
+            await websocket.receive_text()
             fno_logger.debug("updated processed data table /data")
-            await asyncio.sleep(15)
+            # await asyncio.sleep(15)
     except WebSocketDisconnect:
         fno_logger.info("data client disconnected")
+        clients_data.remove(websocket)
 
 
 @app.get("/", include_in_schema=False)
@@ -174,36 +179,6 @@ def delete_zip(request_id: str):
         fno_logger.error(err)
 
 
-async def broadcast_job_queue(current_job=None):
-    job_data = {
-        "current_job": current_job.__dict__ if current_job else None,
-        "pending_jobs": [job.__dict__ for job in job_queue]}
-    
-    if len(job_data['pending_jobs']) != 0:
-        fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
-    
-    for client in clients_jobs:
-        try:
-            await client.send_text(json.dumps(job_data))
-        except Exception as e:
-            fno_logger.error(f"failed to send to a client: {e}")
-            clients_jobs.remove(client)
-            
-    fno_logger.debug("job queue updated")
-
-
-# async def broadcast_zip_files():
-#     if len(output_data) != 0:
-#         fno_logger.info(f"broadcasting {len(output_data)} ZIP files")
-        
-#         for client in clients:
-#             try:
-#                 await client.send_text(json.dumps(output_data))
-#             except Exception as e:
-#                 fno_logger.error(f"failed to send ZIP files to client: {e}")
-#                 clients.remove(client)
-
-
 @app.post("/submit", response_class=JSONResponse)
 async def handle_form(
     request: Request,
@@ -240,22 +215,27 @@ async def process_job(job: Job):
     await broadcast_job_queue(job)
     
     requested_uids = [uid for uid in job.uid_list if not os.path.exists(os.path.join("./input", uid))]
-    code = 0
+    result = ProcessResult()
     if len(requested_uids) != 0:
         fno_logger.debug(f"downloading data for:\n{",\n".join(requested_uids)}")
-        code = download_dcm(job.pacs, requested_uids)
+        # code = download_dcm(job.pacs, requested_uids)
+        result = download_dcm(job.pacs, requested_uids)
     else:
         fno_logger.debug(f"all {job.request_id} data found in ./input")
-    
-    if code == -1:
-        job.status = "fail"
+        result.mark_success(f"all {job.request_id} data in ./input")
 
+    if result.code == StatusCodes.DOWNLOAD_ERROR:
+        job.status = "fail"
+        fno_logger.error(result.format_result())
+    # if code == -1:
+    #     job.status = "fail"
+        
     # 0 - all is good
     # 1 - some data might be missing, ie not found on PACS
     # -1 - none were downloaded when needed
     #FIXME: improve the return codes
     output_dir = Path("./output", job.request_id)
-    if code == 0 or code == 1:
+    if result.is_good():
         os.makedirs(output_dir, exist_ok=True)
         data_paths = [os.path.join("./input", uid) for uid in job.uid_list]
         job.status = "processing"
@@ -263,13 +243,15 @@ async def process_job(job: Job):
         await broadcast_job_queue(job)
         
         fno_logger.info(f"starting process {job.process_name}...")
-        cond = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
+        
+        # cond = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
+        process_result = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
         # cond = processor(data_paths, output_dir)
         # cond = dicom_convert.dcm2other(data_paths, "mha", output_dir=output_dir)
-        
-        if cond == 0:
+        fno_logger.info(process_result)        
+        if process_result.is_good():
             job.status = "done"
-        elif cond == -1:
+        elif process_result.is_bad():
             job.status = "fail"
             
         job.finish_time = datetime.now().strftime("%H:%M:%S")
@@ -295,16 +277,45 @@ async def process_job(job: Job):
         # if cond != 0:
             
         if cond == 0:
-            output_data.insert(0, {
-                'request_id': job.request_id,
-                'process_name': job.process_name,
-                'date': job.date,
-                'finish_time': job.finish_time,
-                'file_size': f"{file_size:.2f}"
-            })
+            zip_data = ZipData(request_id=job.request_id,
+                              process_name=job.process_name,
+                              date=job.date,
+                              finish_time=job.finish_time,
+                              file_size=f"{file_size:.2f}")
+            output_data.insert(0, zip_data)
+            await broadcast_zip_files()
         else:
             fno_logger.error(f"error while zipping data {job.request_id}")
             
+            
+async def broadcast_job_queue(current_job=None):
+    job_data = {
+        "current_job": current_job.__dict__ if current_job else None,
+        "pending_jobs": [job.__dict__ for job in job_queue]}
+    
+    if len(job_data['pending_jobs']) != 0:
+        fno_logger.info(f"broadcasting {len(job_data['pending_jobs'])} jobs to html queue")
+    
+    for client in clients_jobs:
+        try:
+            await client.send_text(json.dumps(job_data))
+        except Exception as e:
+            fno_logger.error(f"failed to send to a client: {e}")
+            clients_jobs.remove(client)
+            
+    fno_logger.debug("job queue updated")
+
+
+async def broadcast_zip_files():
+    fno_logger.info(f"broadcasting {len(output_data)} ZIP files")
+    
+    for client in clients_data:
+        try:
+            await client.send_text(json.dumps([data.__dict__ for data in output_data]))
+        except Exception as e:
+            fno_logger.error(f"failed to send ZIP files to client: {e}")
+            clients_data.remove(client)
+
 
 @repeat_every(seconds=15)
 async def check_queue():
@@ -325,21 +336,29 @@ async def check_output_data():
     
     files = glob.glob('./output/*.zip')
     current_count = len(output_data)
-    
+
     if current_count != len(files):
-        existing_ids = [item.get('request_id') for item in output_data]
+        existing_ids = [item.request_id for item in output_data]
         new_ids = [request_id for path in files if (request_id := Path(path).stem) not in existing_ids]
         async with aiosqlite.connect('jobs_history.db') as db:
                     sql_comm = f"SELECT request_id, process_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(new_ids))}) ORDER BY date DESC, finish_time DESC"
                     async with db.execute(sql_comm, new_ids) as cursor:
                         columns = [column[0] for column in cursor.description]
                         async for row in cursor:
-                            data = dict(zip(columns, row))
-                            fs = os.stat(os.path.join("./output", f"{data['request_id']}.zip")).st_size / 1_000_000
-                            data['file_size'] = f"{fs:.2f}"
+                            data = ZipData(
+                                request_id=row[0],
+                                process_name=row[1],
+                                date=row[2],
+                                finish_time=row[3]
+                                )
+                            # data = dict(zip(columns, row))
+                            fs = os.stat(os.path.join("./output", f"{data.request_id}.zip")).st_size / 1_000_000
+                            data.file_size = f"{fs:.2f}"
                             output_data.append(data)
+        await broadcast_zip_files()
+    else:
+        fno_logger.info("no new zip files to send")
     
-            
 # @repeat_every(seconds=10, wait_first=10)
 # def delete_file():
 #     check_dir = "./tes"

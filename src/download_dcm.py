@@ -1,11 +1,9 @@
 import sys
 import os
 import subprocess
-from dotenv import load_dotenv
-from pathlib import Path
 
-from .logger import setup_logger
-
+from src.logger import setup_logger
+from src.process_result import ProcessResult, StatusCodes
 
 fno_logger = setup_logger("fnodthandler")
 
@@ -14,42 +12,53 @@ receiver_store_port = os.getenv("RECEIVER_STORE_PORT")
 fno_logger.info(f"movescu destination is {receiver_aetitle}:{receiver_store_port}")
 
 def download_dcm(pacs: dict, series_uids: list):
-    result = None
-    failed_series = []
+    sub_result: subprocess.CompletedProcess = None
+    failed_uids = []
     for serie_uid in series_uids:
         output_dir = f"./input/{serie_uid}"
         fno_logger.debug(f"creating download directory \"{output_dir}\"")
         os.makedirs(output_dir, exist_ok=True)
         try: 
-            result = subprocess.run([sys.executable,
-                                     "./src/algorithms/movescu.py",
-                                     pacs['ip'], pacs['port'],
-                                     "-aec", pacs['aetitle'],
-                                     "-aet", receiver_aetitle,
-                                     "-aem", receiver_aetitle,
-                                     "--store", "--store-port", receiver_store_port,
-                                     "-od", output_dir,
-                                     "-k", f"SeriesInstanceUID={serie_uid}",
-                                     "-q"
-                                     ])
+            sub_result = subprocess.run([
+                sys.executable,
+                "./src/algorithms/movescu.py", 
+                pacs['ip'], pacs['port'],
+                "-aec", pacs['aetitle'],
+                "-aet", receiver_aetitle,
+                "-aem", receiver_aetitle,
+                "--store", "--store-port", receiver_store_port,
+                "-od", output_dir,
+                "-k", f"SeriesInstanceUID={serie_uid}",
+                "-q"
+                ])
         except subprocess.CalledProcessError as er:
             fno_logger.error(f"script movescu.py failed with exit code {er.returncode}")
             fno_logger.error(f"script arguments {pacs}, download dir {output_dir}, series uid {serie_uid}")
-            failed_series.append(serie_uid)
+            failed_uids.append(serie_uid)
             os.rmdir(output_dir)
             
         # failed C-MOVE request can pass above try-except block
         if len(os.listdir(output_dir)) == 0:
-            failed_series.append(serie_uid)
+            failed_uids.append(serie_uid)
             os.rmdir(output_dir)
             
     downloaded_uids = [uid for uid in series_uids if uid in os.listdir("./input")]
     fno_logger.info(f"downloaded {len(downloaded_uids)} out of {len(series_uids)} series")
     
-    if len(failed_series) != 0:
-        fno_logger.warning(f"failed downloading uids:\n{"\n".join(failed_series)}")
+    result = ProcessResult()
     
-    if len(failed_series) == len(series_uids):
-        fno_logger.error(f"no files downloaded:\n{"\n".join(failed_series)}")
-        return -1
-    return result.returncode
+    if len(failed_uids) != 0:
+        # fno_logger.warning(f"failed downloading some uids:\n{"\n".join(failed_series)}")
+        result.mark_warning("C-MOVE: some files failed to download", stdout=sub_result.stdout)
+        fno_logger.warning(result.format_result())
+        fno_logger.warning(f"failed uids:\n{"\n".join(failed_uids)}")
+        return result
+    
+    elif len(failed_uids) == len(series_uids):
+        # fno_logger.error(f"no files downloaded:\n{"\n".join(failed_uids)}")
+        result.mark_failure(StatusCodes.DOWNLOAD_ERROR, "C-MOVE: all files failed to downloaded", stdout=sub_result.stdout)
+        fno_logger.error(result.format_result())
+        fno_logger.error(f"failed uids:\n{"\n".join(failed_uids)}")
+    else:
+        result.mark_success("download finished successfuly")
+    return result

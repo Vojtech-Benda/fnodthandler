@@ -1,7 +1,11 @@
 import sys
 import SimpleITK as sitk
 import os
-from ..logger import setup_logger
+# from ..logger import setup_logger
+from src.logger import setup_logger
+# from ..process_result import ProcessResult, StatusCodes
+from src.process_result import ProcessResult, StatusCodes
+
 
 fno_logger = setup_logger("fnodthandler")
 
@@ -13,18 +17,19 @@ SITK_IMAGE_TYPES = {
 
 
 def dcm2other(data_dirs: str, output_dir: str = ".", output_datatype: str = "mha"):
-    cond = 0
+    # cond = 0
     fno_logger.info(f"converting {len(data_dirs)} data")
     reader = sitk.ImageSeriesReader()
     
-    for directory in data_dirs:
+    result = ProcessResult()
+    processed_dirs = [False] * len(data_dirs)
+    for idx, directory in enumerate(data_dirs):
         dicom_names = reader.GetGDCMSeriesFileNames(directory)
         reader.SetFileNames(dicom_names)
         image: sitk.Image = None
         try:
             image = reader.Execute()
         except:
-            # return -1
             fno_logger.error(f"unable to read image data: \"{directory}\"")
             continue
         
@@ -35,17 +40,20 @@ def dcm2other(data_dirs: str, output_dir: str = ".", output_datatype: str = "mha
         try:
             sitk.WriteImage(image, filename)
             fno_logger.info(f"writing {output_datatype.upper()} finished")
-            cond = 0
+            processed_dirs[idx] = True
+            # cond = 0
         except RuntimeError as err:
             fno_logger.error(f"writing {output_datatype.upper()} failed")
             fno_logger.error(err)
-            cond = -1
-            
-    return cond
-        # else:
-        #     print("[dcm2mha] SeriesInstanceUID not found")
-        #     print("[dcm2mha] Unable to save as MHA")
-        #     return -1
+            # cond = -1
+    
+    if sum(processed_dirs) == len(processed_dirs):
+        result.mark_success("all input dirs processed")
+    elif sum(processed_dirs) == 0:
+        result.mark_failure(StatusCodes.CONVERSION_ERROR, "none input dirs processed")
+    else:
+        result.mark_warning("some input dirs processed")
+    return result
     
 if __name__ == "__main__":
     if len(sys.argv) < 3:

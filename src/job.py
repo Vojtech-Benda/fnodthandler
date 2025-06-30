@@ -12,3 +12,11 @@ class Job(BaseModel):
     finish_time: str = ""
     status: str = "pending"
     status_detail: str = ""
+    
+    
+class ZipData(BaseModel):
+    request_id: str = ""
+    process_name: str = ""
+    date: str = ""
+    finish_time: str = ""
+    file_size: str = ""
