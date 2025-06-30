@@ -15,15 +15,9 @@ class StatusCodes(Enum):
 @dataclass
 class ProcessResult:
     code: StatusCodes = StatusCodes.NONE
-    # success: bool = False
     message: str = None
     stdout: Optional[str] = None
     process: Optional[str] = None
-            
-    # def set_condition(self, code: int, message: str = None, stdout: Optional[str] = None):
-    #     self.code = code
-    #     self.message = message
-    #     self.stdout = stdout
         
     def mark_success(self, message: str, **kwargs):
         self.code = StatusCodes.SUCCESS

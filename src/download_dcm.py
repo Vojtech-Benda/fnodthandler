@@ -48,14 +48,12 @@ def download_dcm(pacs: dict, series_uids: list):
     result = ProcessResult()
     
     if len(failed_uids) != 0:
-        # fno_logger.warning(f"failed downloading some uids:\n{"\n".join(failed_series)}")
         result.mark_warning("C-MOVE: some files failed to download", stdout=sub_result.stdout)
         fno_logger.warning(result.format_result())
         fno_logger.warning(f"failed uids:\n{"\n".join(failed_uids)}")
         return result
     
     elif len(failed_uids) == len(series_uids):
-        # fno_logger.error(f"no files downloaded:\n{"\n".join(failed_uids)}")
         result.mark_failure(StatusCodes.DOWNLOAD_ERROR, "C-MOVE: all files failed to downloaded", stdout=sub_result.stdout)
         fno_logger.error(result.format_result())
         fno_logger.error(f"failed uids:\n{"\n".join(failed_uids)}")

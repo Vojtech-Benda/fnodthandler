@@ -25,7 +25,6 @@ import traceback
 from src.process import PROCESS_DISPATCH
 from src.process_result import ProcessResult, StatusCodes
 
-# from src.algorithms import dicom_convert
 from src.download_dcm import download_dcm
 from src.job import Job, ZipData
 from src import utils
@@ -47,10 +46,8 @@ def server():
 async def lifespan(app: FastAPI):
     await check_queue() # needs to run once to register with lifespan and FastAPI
     await check_output_data()
-    # await delete_file()
     app.add_event_handler("startup", check_queue)
     app.add_event_handler("startup", check_output_data)
-    # app.add_event_handler("startup", delete_file)
     
     if not os.path.exists("jobs_history.db"):
         await history.init_db()
@@ -70,7 +67,6 @@ templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
 output_data: list[ZipData] = []
-# clients: list[WebSocket] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
 clients_data: list[WebSocket] = []
@@ -119,10 +115,8 @@ async def websocket_data(websocket: WebSocket):
     await websocket.send_text(json.dumps([data.__dict__ for data in output_data]))
     try:
         while True:
-            # await websocket.send_text(json.dumps(output_data))
             await websocket.receive_text()
             fno_logger.debug("updated processed data table /data")
-            # await asyncio.sleep(15)
     except WebSocketDisconnect:
         fno_logger.info("data client disconnected")
         clients_data.remove(websocket)
@@ -218,7 +212,6 @@ async def process_job(job: Job):
     result = ProcessResult()
     if len(requested_uids) != 0:
         fno_logger.debug(f"downloading data for:\n{",\n".join(requested_uids)}")
-        # code = download_dcm(job.pacs, requested_uids)
         result = download_dcm(job.pacs, requested_uids)
     else:
         fno_logger.debug(f"all {job.request_id} data found in ./input")
@@ -227,13 +220,7 @@ async def process_job(job: Job):
     if result.code == StatusCodes.DOWNLOAD_ERROR:
         job.status = "fail"
         fno_logger.error(result.format_result())
-    # if code == -1:
-    #     job.status = "fail"
-        
-    # 0 - all is good
-    # 1 - some data might be missing, ie not found on PACS
-    # -1 - none were downloaded when needed
-    #FIXME: improve the return codes
+
     output_dir = Path("./output", job.request_id)
     if result.is_good():
         os.makedirs(output_dir, exist_ok=True)
@@ -244,10 +231,8 @@ async def process_job(job: Job):
         
         fno_logger.info(f"starting process {job.process_name}...")
         
-        # cond = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
         process_result = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
-        # cond = processor(data_paths, output_dir)
-        # cond = dicom_convert.dcm2other(data_paths, "mha", output_dir=output_dir)
+
         fno_logger.info(process_result)        
         if process_result.is_good():
             job.status = "done"
@@ -273,8 +258,6 @@ async def process_job(job: Job):
         
         fno_logger.debug(f"zipping output data {job.request_id}")
         cond, file_size = utils.zip_data(job.request_id)
-        
-        # if cond != 0:
             
         if cond == 0:
             zip_data = ZipData(request_id=job.request_id,
@@ -351,7 +334,6 @@ async def check_output_data():
                                 date=row[2],
                                 finish_time=row[3]
                                 )
-                            # data = dict(zip(columns, row))
                             fs = os.stat(os.path.join("./output", f"{data.request_id}.zip")).st_size / 1_000_000
                             data.file_size = f"{fs:.2f}"
                             output_data.append(data)
@@ -359,21 +341,3 @@ async def check_output_data():
     else:
         fno_logger.info("no new zip files to send")
     
-# @repeat_every(seconds=10, wait_first=10)
-# def delete_file():
-#     check_dir = "./tes"
-#     files = os.listdir(check_dir)
-#     print(files)
-#     if len(files) == 0:
-#         return
-#     for f in files:
-        
-#         path = Path(check_dir + "/" + f)
-#         if path.is_dir():
-#             shutil.rmtree(path)
-#             print(f"removing directory: {path}")
-#         elif path.is_file():
-#             os.remove(path)
-#             print(f"removing file: {path}")
-#         else:
-#             print(f"unable to remove file/directory: {path}")

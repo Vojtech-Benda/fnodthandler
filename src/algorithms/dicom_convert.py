@@ -1,9 +1,7 @@
 import sys
 import SimpleITK as sitk
 import os
-# from ..logger import setup_logger
 from src.logger import setup_logger
-# from ..process_result import ProcessResult, StatusCodes
 from src.process_result import ProcessResult, StatusCodes
 
 
