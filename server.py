@@ -209,20 +209,21 @@ async def process_job(job: Job):
     await broadcast_job_queue(job)
     
     requested_uids = [uid for uid in job.uid_list if not os.path.exists(os.path.join("./input", uid))]
-    result = ProcessResult()
+    download_result = ProcessResult()
     if len(requested_uids) != 0:
         fno_logger.debug(f"downloading data for:\n{",\n".join(requested_uids)}")
-        result = download_dcm(job.pacs, requested_uids)
+        download_result = download_dcm(job.pacs, requested_uids)
     else:
         fno_logger.debug(f"all {job.request_id} data found in ./input")
-        result.mark_success(f"all {job.request_id} data in ./input")
+        download_result.mark_success(f"all {job.request_id} data in ./input")
 
-    if result.code == StatusCodes.DOWNLOAD_ERROR:
+    if download_result.is_bad():
         job.status = "fail"
-        fno_logger.error(result.format_result())
+        job.status_detail = "failed downloading dicom data"
+        fno_logger.error(download_result.format_result())
 
     output_dir = Path("./output", job.request_id)
-    if result.is_good():
+    if download_result.is_good():
         os.makedirs(output_dir, exist_ok=True)
         data_paths = [os.path.join("./input", uid) for uid in job.uid_list]
         job.status = "processing"
@@ -238,37 +239,38 @@ async def process_job(job: Job):
             job.status = "done"
         elif process_result.is_bad():
             job.status = "fail"
+            job.status_detail = "failed processing data"
             
-        job.finish_time = datetime.now().strftime("%H:%M:%S")
-        
-        await broadcast_job_queue(job)
-        
-        try:
-            await history.write_job_to_db(job)
-            fno_logger.debug("job written to database")
-        except Exception as e:
-            fno_logger.error(f"failed tow rite job to database: {e}")
-            traceback.print_exc()
+    job.finish_time = datetime.now().strftime("%H:%M:%S")
+    
+    await broadcast_job_queue(job)
+    
+    try:
+        await history.write_job_to_db(job)
+        fno_logger.debug("job written to database")
+    except Exception as e:
+        fno_logger.error(f"failed tow rite job to database: {e}")
+        traceback.print_exc()
 
-        fno_logger.debug("sending email")
-        utils.send_email(job)
+    fno_logger.debug("sending email")
+    utils.send_email(job)
+    
+    fno_logger.info("removed job from queue")
+    fno_logger.debug(utils.format_job_string(job, level=1))
+    
+    fno_logger.debug(f"zipping output data {job.request_id}")
+    file_size = utils.zip_data(job.request_id)
         
-        fno_logger.info("removed job from queue")
-        fno_logger.debug(utils.format_job_string(job, level=1))
-        
-        fno_logger.debug(f"zipping output data {job.request_id}")
-        cond, file_size = utils.zip_data(job.request_id)
-            
-        if cond == 0:
-            zip_data = ZipData(request_id=job.request_id,
-                              process_name=job.process_name,
-                              date=job.date,
-                              finish_time=job.finish_time,
-                              file_size=f"{file_size:.2f}")
-            output_data.insert(0, zip_data)
-            await broadcast_zip_files()
-        else:
-            fno_logger.error(f"error while zipping data {job.request_id}")
+    if file_size > 0:
+        zip_data = ZipData(request_id=job.request_id,
+                            process_name=job.process_name,
+                            date=job.date,
+                            finish_time=job.finish_time,
+                            file_size=f"{file_size:.2f}")
+        output_data.insert(0, zip_data)
+        await broadcast_zip_files()
+    else:
+        fno_logger.error(f"error while zipping data {job.request_id}")
             
             
 async def broadcast_job_queue(current_job=None):

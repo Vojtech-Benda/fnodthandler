@@ -1,10 +1,12 @@
 import os
 import smtplib, ssl
 from email.message import EmailMessage
-from src.job import Job
-from pathlib import Path
-from src.logger import setup_logger
 import zipfile
+from pathlib import Path
+
+from src.job import Job
+from src.logger import setup_logger
+from src.process_result import StatusCodes
 
 fno_logger = setup_logger("fnodthandler")
 
@@ -52,6 +54,7 @@ PACS: {job.pacs['aetitle']} - {job.pacs['ip']}:{job.pacs['port']}
 Začátek: {job.start_time}
 Konec: {job.finish_time}
 Stav: {job.status}
+Detail stavu: {job.status_detail}
 
 Zpracované DICOM UID:\n{",\n".join(job.uid_list)}
 
@@ -74,7 +77,6 @@ def zip_data(request_id: str):
     output_dir = Path("./output", request_id)
     zip_path = Path("./output", f"{request_id}.zip")
     
-    cond = -1
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(output_dir):
             for file in files:
@@ -82,6 +84,6 @@ def zip_data(request_id: str):
                 arcname = os.path.relpath(fullpath, output_dir)
                 zipf.write(fullpath, arcname=arcname)
         zipf.close()
-        cond = 0
-        file_size = os.stat(zip_path).st_size / 1000000 # bytes to MB
-    return cond, file_size
+        file_size = os.stat(zip_path).st_size / 1_000_000 # bytes to MB
+    
+    return file_size
