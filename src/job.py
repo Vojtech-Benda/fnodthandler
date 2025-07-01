@@ -14,7 +14,7 @@ class Job(BaseModel):
     status_detail: str = ""
     
     
-class ZipData(BaseModel):
+class ProcessedData(BaseModel):
     request_id: str = ""
     process_name: str = ""
     date: str = ""

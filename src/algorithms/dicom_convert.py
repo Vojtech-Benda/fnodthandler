@@ -14,7 +14,7 @@ SITK_IMAGE_TYPES = {
 }
 
 
-def dcm2other(data_dirs: str, output_dir: str = ".", output_datatype: str = "mha"):
+def dcm2other(data_dirs: list[str], output_dir: str = ".", output_datatype: str = "mha"):
     # cond = 0
     fno_logger.info(f"converting {len(data_dirs)} data")
     reader = sitk.ImageSeriesReader()
@@ -56,6 +56,7 @@ def dcm2other(data_dirs: str, output_dir: str = ".", output_datatype: str = "mha
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: dcm2other.py <input_dir> <output_datatype> [optional] <output_dir>")
-        print("Supported output datatypes: mha")
+        print("Supported output datatypes: mha, nifti")
         
-    dcm2other(sys.argv[1], sys.argv[2])
+        output_dir = sys.argv[3] if sys.argv[3] else "." 
+    dcm2other(sys.argv[1], output_dir, sys.argv[2])
