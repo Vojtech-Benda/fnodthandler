@@ -85,5 +85,17 @@ def zip_data(request_id: str):
                 zipf.write(fullpath, arcname=arcname)
         zipf.close()
         file_size = os.stat(zip_path).st_size / 1_000_000 # bytes to MB
-    
+    fno_logger.debug(f"data archived to \"{zip_path}\"")
     return file_size
+
+
+def write_uid_list(uid_list: list[str], output_path: Path):
+    if not output_path.exists():
+        fno_logger.error(f"unable to write uid list to non existing directory \"{output_path}\"")
+        return
+    
+    output_path = output_path.joinpath("uid_list.txt")
+    with open(output_path, 'w') as file:
+        file.write("\n".join(uid_list))
+    fno_logger.debug(f"uid list written to \"{output_path}\"")
+    

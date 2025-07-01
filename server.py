@@ -26,7 +26,7 @@ from src.process import PROCESS_DISPATCH
 from src.process_result import ProcessResult, StatusCodes
 
 from src.download_dcm import download_dcm
-from src.job import Job, ZipData
+from src.job import Job, ProcessedData
 from src import utils
 from src import history
 from src.logger import setup_logger
@@ -66,7 +66,7 @@ app = server()
 templates = Jinja2Templates(directory="templates/")
 
 job_queue: list[Job] = []
-output_data: list[ZipData] = []
+output_data: list[ProcessedData] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
 clients_data: list[WebSocket] = []
@@ -205,9 +205,9 @@ async def handle_form(
 async def process_job(job: Job):
     job.status = "downloading"
     job.start_time = datetime.now().strftime("%H:%M:%S")
-    
+
     await broadcast_job_queue(job)
-    
+
     requested_uids = [uid for uid in job.uid_list if not os.path.exists(os.path.join("./input", uid))]
     download_result = ProcessResult()
     if len(requested_uids) != 0:
@@ -227,11 +227,11 @@ async def process_job(job: Job):
         os.makedirs(output_dir, exist_ok=True)
         data_paths = [os.path.join("./input", uid) for uid in job.uid_list]
         job.status = "processing"
-        
+
         await broadcast_job_queue(job)
-        
+
         fno_logger.info(f"starting process {job.process_name}...")
-        
+
         process_result = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
 
         fno_logger.info(process_result)        
@@ -240,39 +240,43 @@ async def process_job(job: Job):
         elif process_result.is_bad():
             job.status = "fail"
             job.status_detail = "failed processing data"
-            
+
     job.finish_time = datetime.now().strftime("%H:%M:%S")
-    
+
     await broadcast_job_queue(job)
-    
+
     try:
         await history.write_job_to_db(job)
         fno_logger.debug("job written to database")
     except Exception as e:
-        fno_logger.error(f"failed tow rite job to database: {e}")
+        fno_logger.error(f"failed to write job to database: {e}")
         traceback.print_exc()
 
     fno_logger.debug("sending email")
     utils.send_email(job)
-    
+
     fno_logger.info("removed job from queue")
     fno_logger.debug(utils.format_job_string(job, level=1))
-    
+
+    utils.write_uid_list(job.uid_list, output_dir)
+
     fno_logger.debug(f"zipping output data {job.request_id}")
     file_size = utils.zip_data(job.request_id)
-        
+
     if file_size > 0:
-        zip_data = ZipData(request_id=job.request_id,
-                            process_name=job.process_name,
-                            date=job.date,
-                            finish_time=job.finish_time,
-                            file_size=f"{file_size:.2f}")
-        output_data.insert(0, zip_data)
+        processed_data = ProcessedData(
+            request_id=job.request_id,
+            process_name=job.process_name,
+            date=job.date,
+            finish_time=job.finish_time,
+            file_size=f"{file_size:.2f}",
+        )
+        output_data.insert(0, processed_data)
         await broadcast_zip_files()
     else:
         fno_logger.error(f"error while zipping data {job.request_id}")
-            
-            
+
+
 async def broadcast_job_queue(current_job=None):
     job_data = {
         "current_job": current_job.__dict__ if current_job else None,
@@ -313,8 +317,8 @@ async def check_queue():
     else:
         fno_logger.info("no job to process")
         await broadcast_job_queue()
-        
-            
+
+
 @repeat_every(seconds=15)
 async def check_output_data():
     fno_logger.info("checking output data...")
@@ -330,7 +334,7 @@ async def check_output_data():
                     async with db.execute(sql_comm, new_ids) as cursor:
                         columns = [column[0] for column in cursor.description]
                         async for row in cursor:
-                            data = ZipData(
+                            data = ProcessedData(
                                 request_id=row[0],
                                 process_name=row[1],
                                 date=row[2],
@@ -342,4 +346,3 @@ async def check_output_data():
         await broadcast_zip_files()
     else:
         fno_logger.info("no new zip files to send")
-    
