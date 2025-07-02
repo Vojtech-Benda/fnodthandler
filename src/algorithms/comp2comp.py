@@ -1,27 +1,36 @@
+import multiprocessing.process
+import multiprocessing.spawn
 import sys
 import os
 import subprocess
+from pathlib import Path
 
 from src.logger import setup_logger
 from src.process_result import ProcessResult, StatusCodes
+from dotenv import load_dotenv
+import multiprocessing
 
 
 fno_logger = setup_logger("fnodthandler")
+load_dotenv()
+
 
 
 pipeline_dict = {
-    "seg_c2c_sma": "spine_muscle_adipose_tissue"
+    "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
 }
 
 
-EXECUTABLE_PATH = "/home/vojt/miniforge3/envs/c2c-env39/bin/python"
-SCRIPT_PATH = "./src/algorithms/Comp2Comp/bin/C2C"
+EXECUTABLE_PATH = os.getenv("C2C_EXEC_PATH")
+SCRIPT_PATH = os.getenv("C2C_SCRIPT_PATH")
 
 
 def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_c2c_sma"):
-    fno_logger.info(f"segmenting {len(data_dirs)} data")
-    fno_logger.info(f"starting comp2comp {pipeline_dict[pipeline]}")
+    fno_logger.info(f"running comp2comp {pipeline_dict[pipeline]}")
+    fno_logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline_dict[pipeline]}")
+    fno_logger.debug(f"input paths: {"\n".join(data_dirs)}")
     
+    fno_logger.info(f"segmenting {len(data_dirs)} data")
     result = ProcessResult()
     sub_result: subprocess.CompletedProcess = None
     sub_results = []

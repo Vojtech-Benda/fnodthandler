@@ -5,7 +5,7 @@ from src.process_result import ProcessResult, StatusCodes
 
 
 def seg_ct_eye_socket(data_dirs: list[str], output_dir: str = "."):
-    pass
+    raise NotImplemented
 
 
 if __name__ == "__main__":
