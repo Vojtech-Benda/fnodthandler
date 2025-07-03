@@ -5,7 +5,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional
 import yaml
-
+import pathlib
+from src.process_result import StatusCodes
 
 def get_parser():
     parser = argparse.ArgumentParser(prog="fnodthandler", description="Automatically process DICOM data")
@@ -67,6 +68,7 @@ def append_algorithms(algorithms: list[str], env_path: Optional[Path] = ".env"):
     
     print(f"appending paths for the following algorithms:\n{algorithms}")
     algo_paths = []
+    missing_paths: dict[str, list] = {}
     
     if hasattr(args, "algorithms") and args.algorithms:
         for algo in args.algorithms:
@@ -75,14 +77,34 @@ def append_algorithms(algorithms: list[str], env_path: Optional[Path] = ".env"):
             
             algo_exec_path = Path(algo_exec_path).expanduser()
             algo_script_path = Path(algo_script_path).expanduser()
-            algo_paths.append(f"{algo.upper()}_EXEC_PATH={algo_exec_path}")
-            algo_paths.append(f"{algo.upper()}_SCRIPT_PATH={algo_script_path}")
+
+            missing_paths[algo] = []
+            
+            try:
+                for path, label in zip((algo_exec_path, algo_script_path), ("EXEC_PATH", "SCRIPT_PATH")):
+                    if path.exists():
+                        algo_paths.append(f"{algo.upper()}_{label}={path}")
+                    else:            
+                        algo_paths.append(f"{algo.upper()}_{label}=")
+                        missing_paths[algo].append(label)
+                        raise FileNotFoundError(StatusCodes.COMMANDLINE_ERROR, f"executable/script not found for algorithm {algo}", path)
+            except FileNotFoundError as err:
+                print(err)
+            
+        if len(missing_paths) > 0:
+            for k, v in missing_paths.items():
+                if v:
+                    print(f"algorithms with missing paths:\n" +
+                          f"\n".join(f"{k}: {', '.join(v)}"))
+            # print(f"following algorithms are missing paths\n" + 
+            #       f"\n".join(f"{k}: {', '.join(v)}" for k, v in missing_paths.items() if v))
+
             
     if env_path.exists():
         with open(env_path, 'a', encoding="utf-8") as fenv:
             fenv.write("\n".join(algo_paths))
         
-        print(f"appended paths for {len(args.algorithms)} algorithms")
+        print(f"appended paths for {len(args.algorithms) - len(missing_paths)}/{len(args.algorithms)} algorithms")
         return
     
     return algo_paths
@@ -98,5 +120,5 @@ if __name__ == "__main__":
     elif args.append:
         if args.algorithms is None:
             parser.error("using --append (-a) option requires --algorithms (-algs)")
-            raise RuntimeError
+            sys.exit(StatusCodes.COMMANDLINE_ERROR)
         append_algorithms(args.algorithms, env_path)

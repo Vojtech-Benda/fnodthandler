@@ -9,6 +9,7 @@ class StatusCodes(Enum):
     WARNING = 1
     DOWNLOAD_ERROR = 2
     CONVERSION_ERROR = 3
+    COMMANDLINE_ERROR = 98
     UNKNOWN_ERROR = 99
 
 
