@@ -2,10 +2,7 @@ import sys
 import os
 import argparse
 from pathlib import Path
-from dotenv import load_dotenv
-from typing import Optional
 import yaml
-import pathlib
 from src.process_result import StatusCodes
 
 def get_parser():
@@ -31,94 +28,55 @@ def get_parser():
 
 
 def create_env_file(args: argparse.Namespace, env_path):
-    content = [
-        "# project variables",
-        f"APP_HOST={args.host}",
-        f"APP_PORT={args.port}",
-        f"DEBUG={args.debug}",
-        "",
-        "# project paths",
-        "ROOT_DIR=.",
-        "SRC_DIR=./src",
-        "ALGORITHMS_DIR=./src/algorithms",
-        "",
-        "# movescu variables",
-        f"RECEIVER_AE_TITLE={args.aet}",
-        f"RECEIVER_STORE_PORT={args.store_port}",
-        "",
-        "# email variables",
-        f"SENDER_EMAIL_ADDRESS={args.email}",
-        f"SENDER_EMAIL_PASSWORD={args.email_pw}",
-        "",
-        "# algorithm paths"
-    ]
+    content = args.__dict__
+    content.pop('append', None)
+    content.pop('new', None)
     
-    algo_paths = append_algorithms(args.algorithms)
-    content.extend(algo_paths)
+    if content['algorithms']:
+        
+        content['algorithms'] = {
+            algo: {
+                'exec_path': '',
+                'script_path': ''
+            } for algo in content['algorithms']
+        }
+        
+        print(f"fill in paths for {len(content['algorithms'])} algorithm keys: {', '.join(content['algorithms'])}")
 
     with open(env_path, 'w', encoding="utf-8") as fenv:
-        fenv.write("\n".join(content))
+        yaml.dump(content, fenv, sort_keys=False)
         
     print("created .env file")
 
 
-def append_algorithms(algorithms: list[str], env_path: Optional[Path] = ".env"):
-    if env_path:
-        env_path = Path(env_path)
-    
-    print(f"appending paths for the following algorithms:\n{algorithms}")
-    algo_paths = []
-    missing_paths: dict[str, list] = {}
-    
-    if hasattr(args, "algorithms") and args.algorithms:
-        for algo in args.algorithms:
-            algo_exec_path = input(f"Enter {algo} python executable path: ")
-            algo_script_path = input(f"Enter {algo} main .py file path: ")
-            
-            algo_exec_path = Path(algo_exec_path).expanduser()
-            algo_script_path = Path(algo_script_path).expanduser()
+def append_algorithms(env_path: Path, algorithms: list[str]):
 
-            missing_paths[algo] = []
+    with open(env_path, 'r', encoding="utf-8") as fenv:
+        content = yaml.safe_load(fenv)
             
-            try:
-                for path, label in zip((algo_exec_path, algo_script_path), ("EXEC_PATH", "SCRIPT_PATH")):
-                    if path.exists():
-                        algo_paths.append(f"{algo.upper()}_{label}={path}")
-                    else:            
-                        algo_paths.append(f"{algo.upper()}_{label}=")
-                        missing_paths[algo].append(label)
-                        raise FileNotFoundError(StatusCodes.COMMANDLINE_ERROR, f"executable/script not found for algorithm {algo}", path)
-            except FileNotFoundError as err:
-                print(err)
-            
-        if len(missing_paths) > 0:
-            for k, v in missing_paths.items():
-                if v:
-                    print(f"algorithms with missing paths:\n" +
-                          f"\n".join(f"{k}: {', '.join(v)}"))
-            # print(f"following algorithms are missing paths\n" + 
-            #       f"\n".join(f"{k}: {', '.join(v)}" for k, v in missing_paths.items() if v))
+    for algo in algorithms:
+        content['algorithms'][algo] = {
+            'exec_path': '',
+            'script_path': '',
+        }
 
-            
-    if env_path.exists():
-        with open(env_path, 'a', encoding="utf-8") as fenv:
-            fenv.write("\n".join(algo_paths))
-        
-        print(f"appended paths for {len(args.algorithms) - len(missing_paths)}/{len(args.algorithms)} algorithms")
-        return
+    with open(env_path, 'w', encoding="utf-8") as fenv:
+        yaml.dump(content, fenv, sort_keys=False)
     
-    return algo_paths
+    print(f"fill in paths for {len(algorithms)} appended algorithm keys")
 
 
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
-    env_path = Path(".env")
+    env_path = Path(".env.yml")
     
     if args.new:
-        create_env_file(args, env_path)    
+        create_env_file(args, env_path)
     elif args.append:
+        if not env_path.exists():
+            raise FileNotFoundError(StatusCodes.FILE_ERROR, f".env file not found at {env_path}")
         if args.algorithms is None:
             parser.error("using --append (-a) option requires --algorithms (-algs)")
-            sys.exit(StatusCodes.COMMANDLINE_ERROR)
-        append_algorithms(args.algorithms, env_path)
+            sys.exit(StatusCodes.FILE_ERROR)
+        append_algorithms(env_path, args.algorithms)

@@ -8,5 +8,5 @@ processed/
 output/
 jobs_history.db
 tests/
-.env
+.env.*
 test_uid.txt
