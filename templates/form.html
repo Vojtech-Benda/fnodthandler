@@ -9,54 +9,61 @@
 </head>
 <body>
 <div class="header_row">
-    
-    <form action="/submit" method="post" id="job_form">
-        <div class="form_header_container">
-            <div class="form_field">
-                <div>
-                    <label for="pacs_select">PACS server:</label>
-                    <select name="pacs_select" id="pacs_select" required>
-                        <option value="">--Vyberte PACS server--</option>
-                        <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
-                    </select>
-                </div>
+    <button id="open_modal_btn" class="navigation_button">Poslat žádost</button>
 
-                <div>
-                    <label for="process_select">Proces:</label>
-                    <select name="process_select" id="proces_select" required>
-                        <option value="">--Vyberte proces--</option>
-                        <optgroup label="Konverze datového typu">
-                            <option value="dcm2mha">DICOM na MHA (dcm2mha)</option>
-                            <option value="dcm2nifti">DICOM na NIFTI (dcm2nifti)</option>
-                        </optgroup>
-                        <optgroup label="Segmentace CT">
-                            <option value="seg_ct_eye_socket">Očnice</option>
-                            <option value="seg_ct_c2c_sma">Comp2Comp: páteř, svaly, tuková tkáň</option> <!-- comp2comp spine muscle adipose-->
-                        </optgroup>
-                    </select>
-                </div>
-            
-                <div>
-                    <label for="notify_email">Email:</label>
-                    <input type="email" name="notify_email" id="notify_email" placeholder="jmeno.prijmeni@fno.cz" required/>
-                </div>
-            </div>
-        </div>
+    <div id="job_modal" class="modal">
+        <div class="modal_content">
+            <span class="close_btn" id="close_modal_btn">&times;</span>
         
-        <div>
-            <label for="uid_list">UID studie/série:</label>
-            <textarea name="uid_list" id="uid_list" rows="5" cols="50" class="uids_textarea"
-            placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
-            <input type="file" id="uid_fileup_btn" class="uid_fileup_btn" accept="text/plain, text/csv"/>
+            <form action="/submit" method="post" id="job_form">
+                <div class="form_header_container">
+                    <div class="form_field">
+                        <div>
+                            <label for="pacs_select">PACS server:</label>
+                            <select name="pacs_select" id="pacs_select" required>
+                                <option value="">--Vyberte PACS server--</option>
+                                <option value="ORTHANC-localhost-4242">ORTHANC localhost:4242</option>
+                            </select>
+                        </div>
+        
+                        <div>
+                            <label for="process_select">Proces:</label>
+                            <select name="process_select" id="proces_select" required>
+                                <option value="">--Vyberte proces--</option>
+                                <optgroup label="Konverze datového typu">
+                                    <option value="dcm2mha">DICOM na MHA (dcm2mha)</option>
+                                    <option value="dcm2nifti">DICOM na NIFTI (dcm2nifti)</option>
+                                </optgroup>
+                                <optgroup label="Segmentace CT">
+                                    <option value="seg_ct_eye_socket">Očnice</option>
+                                    <option value="seg_ct_c2c_sma">Comp2Comp: páteř, svaly, tuková tkáň</option> <!-- comp2comp spine muscle adipose-->
+                                </optgroup>
+                            </select>
+                        </div>
+                    
+                        <div>
+                            <label for="notify_email">Email:</label>
+                            <input type="email" name="notify_email" id="notify_email" placeholder="jmeno.prijmeni@fno.cz" required/>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="uid_list">UID studie/série:</label>
+                    <textarea name="uid_list" id="uid_list" rows="5" cols="50" class="uids_textarea"
+                    placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
+                    <input type="file" id="uid_fileup_btn" class="uid_fileup_btn" accept="text/plain, text/csv"/>
+                </div>
+        
+                <input type="submit" value="Potvrdit" id="form_confirm" class="navigation_button"/>
+            </form>
         </div>
-
-        <input type="submit" value="Poslat žádost"/>
-    </form>
+    </div>
 
     <div class="navigation_buttons">
-        <a href="/instructions" class="navigation_button">Instrukce</a>
-        <a href="/history" class="navigation_button">Historie procesů</a>
         <a href="/data" class="navigation_button">Zpracované data</a>
+        <a href="/history" class="navigation_button">Historie procesů</a>
+        <a href="/instructions" class="navigation_button" style="margin-left: 50px;">Instrukce</a>
     </div>
 </div>
     

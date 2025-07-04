@@ -110,3 +110,18 @@ function updateUidTextArea(event) {
 
     reader.readAsText(file);
 };
+
+document.getElementById('open_modal_btn').addEventListener('click', function() {
+    document.getElementById('job_modal').style.display = 'block';
+});
+
+document.getElementById('close_modal_btn').addEventListener('click', function () {
+    document.getElementById('job_modal').style.display = 'none';
+});
+
+window.addEventListener('click', function(event) {
+    const modal = this.document.getElementById('job_modal')
+    if (event.target == modal) {
+        modal.style.display = 'none'
+    }
+});
