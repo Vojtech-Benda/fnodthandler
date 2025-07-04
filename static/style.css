@@ -14,10 +14,10 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     width: auto;
 } */
-/* 
+
 div {
     margin-bottom: 15px;
-} */
+}
 
 label {
     font-family: Arial, sans-serif;
@@ -39,7 +39,7 @@ label {
     background-color: white;
     margin: 10% auto;
     padding: 20px;
-    width: fit-content;
+    width: 1000px;
     border-radius: 10px;
     position: relative;
 }
@@ -61,13 +61,17 @@ select, textarea, input[type="text"], input[type="email"], input[type="submit"],
     box-sizing: border-box;
 }
 
+select {
+    width: fit-content;
+}
+
 input[type="email"] {
     width: 200px;
 }
 
 .uids_textarea {
     padding: 8px 10px;
-    width: 655;
+    max-width: 655px;
     min-height: 50px;
     max-height: 300px;
     resize: vertical;

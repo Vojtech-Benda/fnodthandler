@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional, Dict
 
 
 class Job(BaseModel):
@@ -12,6 +13,7 @@ class Job(BaseModel):
     finish_time: str = ""
     status: str = "pending"
     status_detail: str = ""
+    additional_options: Optional[Dict[str, str]] = {}
     
     
 class ProcessedData(BaseModel):

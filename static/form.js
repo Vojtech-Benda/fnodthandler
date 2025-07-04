@@ -5,8 +5,8 @@ uidFileupBtn.addEventListener("change", updateUidTextArea);
 const ws = new WebSocket(`ws://${location.host}/ws/jobs`);
 
 ws.onmessage = function(event) {
-    console.log("[WebSocket] message received:", event.data);
     const data = JSON.parse(event.data);
+    console.log("[WebSocket] message received:", data.request_id);
     const current = data.current_job;
     const pending = data.pending_jobs || [];
 
@@ -66,18 +66,32 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
     e.preventDefault();  // prevents default from submission
 
     const formData = new FormData(this);
+    const knownKeys = ["pacs_select", "process_select", "notify_email", "uid_list"]
     for (const [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`)
 
     }
 
+    const payload = {};
+    const additionalOptions = {};
+
+    for (const [key, value] of formData.entries()) {
+        if (knownKeys.includes(key)) {
+            payload[key] = value;
+        } else {
+            additionalOptions[key] = value;
+        }
+    }
+    payload.additional_options = additionalOptions;
+
     try {
         const response = await fetch("/submit", {
             method: "POST",
-            body: formData,
             headers: {
+                "Content-Type": "application/json",
                 "X-Requested-With": "XMLHttpRequest"
-            }
+            },
+            body: JSON.stringify(payload),
         });
 
         console.log("Status:", response.status);
@@ -123,5 +137,35 @@ window.addEventListener('click', function(event) {
     const modal = this.document.getElementById('job_modal')
     if (event.target == modal) {
         modal.style.display = 'none'
+    }
+});
+
+const additionalOptionsToggleBtn = document.getElementById("toggle_arrow");
+const optionsContainer = document.getElementById("process_options");
+const processSelector = document.getElementById("process_select")
+
+let expanded = false;
+
+additionalOptionsToggleBtn.addEventListener('click', () => {
+    expanded = !expanded;
+    optionsContainer.style.display = expanded ? 'block' : 'none';
+    additionalOptionsToggleBtn.textContent = expanded ? '▼ Nastavení procesu' : '▶ Nastavení procesu';
+});
+
+processSelector.addEventListener('change', async () => {
+    const value = processSelector.value;
+    if (!value) return;
+
+    if (!expanded) additionalOptionsToggleBtn.click();
+
+    try {
+        const response = await fetch(`/process_options/${value}.html`);
+        if (!response.ok) throw new Error(`failed to load options ${value}`);
+        
+        const html = await response.text();
+        optionsContainer.innerHTML = html;
+    } catch (err) {
+        optionsContainer.innerHTML = `<p style="color: red;">Unable to load options for "${value}".</p>`;
+        console.error(err);
     }
 });

@@ -28,7 +28,7 @@
         
                         <div>
                             <label for="process_select">Proces:</label>
-                            <select name="process_select" id="proces_select" required>
+                            <select name="process_select" id="process_select" required>
                                 <option value="">--Vyberte proces--</option>
                                 <optgroup label="Konverze datového typu">
                                     <option value="dcm2mha">DICOM na MHA (dcm2mha)</option>
@@ -56,6 +56,16 @@
                 </div>
         
                 <input type="submit" value="Potvrdit" id="form_confirm" class="navigation_button"/>
+                
+                <div>
+                    <button id="toggle_arrow" type="button">
+                        ▶ Nastavení procesu
+                    </button>
+
+                    <div id="process_options">
+                        <!-- dynamic option content goes here -->
+                    </div>
+                </div>
             </form>
         </div>
     </div>

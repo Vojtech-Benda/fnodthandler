@@ -38,7 +38,6 @@ fno_logger = setup_logger("fnodthandler")
 def server():
     app = FastAPI(lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="static"), name="static")
-    app.mount("/src", StaticFiles(directory="src"), name="src")
     return app
 
 
@@ -70,6 +69,19 @@ output_data: list[ProcessedData] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
 clients_data: list[WebSocket] = []
+registered_process_options = {"seg_ct_c2c_sma"}
+
+
+@app.get('/process_options/{option_name}.html', response_class=HTMLResponse)
+async def get_option_file(option_name: str):
+    if option_name not in registered_process_options:
+        raise HTTPException(status_code=404, detail=f"option not allowed: {option_name}")
+    
+    filepath = Path("templates", "process_options", f"{option_name}.html")
+    if not filepath.exists() or not filepath.is_file():
+        raise HTTPException(status_code=404, detail=f"HTML options file not found: {option_name}")
+    
+    return FileResponse(filepath, media_type="text/html")
 
 
 @app.websocket("/ws/jobs")
@@ -174,25 +186,21 @@ def delete_zip(request_id: str):
 
 
 @app.post("/submit", response_class=JSONResponse)
-async def handle_form(
-    request: Request,
-    pacs_select: str = Form(...),
-    uid_list: str = Form(...),
-    process_select: str = Form(...),
-    notify_email: str = Form(...),
-):
+async def handle_form(request: Request):
+    data: dict[str, str] = await request.json()
     request_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=10))
-    pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(pacs_select)
-    cleaned_uids = uid_list.replace("\r\n", "").replace("\n", "").strip().split(",")
+    pacs_ae, pacs_ip, pacs_port = utils.split_pacs_fields(data['pacs_select'])
+    cleaned_uids = data['uid_list'].replace("\r\n", "").replace("\n", "").strip().split(",")
     datetime_now = datetime.now()
 
     new_job = Job(
         request_id=request_id,
         pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
-        process_name=process_select,
-        notify_email=notify_email,
+        process_name=data['process_select'],
+        notify_email=data['notify_email'],
         uid_list=cleaned_uids,
         date=datetime_now.strftime("%Y-%m-%d"),
+        additional_options=data['additional_options']
     )
 
     job_queue.append(new_job)
