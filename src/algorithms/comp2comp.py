@@ -1,28 +1,24 @@
-import multiprocessing.process
-import multiprocessing.spawn
 import sys
 import os
 import subprocess
-from pathlib import Path
 
 from src.logger import setup_logger
 from src.process_result import ProcessResult, StatusCodes
 from dotenv import load_dotenv
-import multiprocessing
 
+from src.utils import read_env
 
 fno_logger = setup_logger("fnodthandler")
 load_dotenv()
 
-
+env_vars = read_env()['algorithms']['c2c']
 
 pipeline_dict = {
     "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
 }
 
-
-EXECUTABLE_PATH = os.getenv("C2C_EXEC_PATH")
-SCRIPT_PATH = os.getenv("C2C_SCRIPT_PATH")
+EXECUTABLE_PATH = env_vars['exec_path']
+SCRIPT_PATH = env_vars['script_path']
 
 
 def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_c2c_sma"):

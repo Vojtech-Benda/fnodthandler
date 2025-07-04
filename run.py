@@ -7,19 +7,25 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from src.logger import setup_logger
-
+from src.utils import read_env
 
 def main():
     logger = setup_logger()
     
-    if not Path(".env").exists():
+    env_path = Path(".env.yml")
+    if not env_path.exists():
         logger.fatal(".env file not found in root directory")
         logger.fatal("run create_env.py first and setup environment variables")
         sys.exit(-1)
     
-    load_dotenv()
-    host = os.getenv("APP_HOST")
-    port = int(os.getenv("APP_PORT"))
+    env_vars = read_env()
+    # load_dotenv()
+    # host = os.getenv("APP_HOST")
+    # port = int(os.getenv("APP_PORT"))
+    
+    host = env_vars['host']
+    port= env_vars['port']
+    
     uvicorn.run("server:app", host=host, port=port, reload=True)
      
 

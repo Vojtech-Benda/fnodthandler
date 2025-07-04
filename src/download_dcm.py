@@ -4,11 +4,14 @@ import subprocess
 
 from src.logger import setup_logger
 from src.process_result import ProcessResult, StatusCodes
+from src.utils import read_env
 
 fno_logger = setup_logger("fnodthandler")
 
-receiver_aetitle = os.getenv("RECEIVER_AE_TITLE")
-receiver_store_port = os.getenv("RECEIVER_STORE_PORT")
+env_vars = read_env()
+
+receiver_aetitle = env_vars['aet']
+receiver_store_port = env_vars['store_port']
 fno_logger.info(f"movescu destination is {receiver_aetitle}:{receiver_store_port}")
 
 def download_dcm(pacs: dict, series_uids: list):

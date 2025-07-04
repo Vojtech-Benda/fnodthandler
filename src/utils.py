@@ -3,6 +3,7 @@ import smtplib, ssl
 from email.message import EmailMessage
 import zipfile
 from pathlib import Path
+import yaml
 
 from src.job import Job
 from src.logger import setup_logger
@@ -41,8 +42,12 @@ def format_job_string(job: Job, level: int = 0):
 
 
 def send_email(job: Job):
-    sender_email = os.getenv("SENDER_EMAIL_ADDRESS")
-    sender_email_pw = os.getenv("SENDER_EMAIL_PASSWORD")
+    env_vars = read_env()
+    sender_email = env_vars['email']
+    sender_email_pw = env_vars['email_pw']
+
+    # sender_email = os.getenv("SENDER_EMAIL_ADDRESS")
+    # sender_email_pw = os.getenv("SENDER_EMAIL_PASSWORD")
     
     msg = EmailMessage()
     msg['Subject'] = f"Dokončení procesu {job.request_id} - {job.process_name}" 
@@ -100,3 +105,13 @@ def write_uid_list(uid_list: list[str], output_path: Path):
         file.write("\n".join(uid_list))
     fno_logger.debug(f"uid list written to \"{output_path}\"")
     
+    
+def read_env():
+    env_path = Path(".env.yml")
+    if not env_path.exists():
+        raise FileNotFoundError(StatusCodes.FILE_ERROR, f"{env_path}")
+    
+    with open(env_path, 'r', encoding="utf-8") as fenv:
+        env_vars = yaml.safe_load(fenv)
+        
+    return env_vars

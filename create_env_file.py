@@ -53,7 +53,10 @@ def append_algorithms(env_path: Path, algorithms: list[str]):
 
     with open(env_path, 'r', encoding="utf-8") as fenv:
         content = yaml.safe_load(fenv)
-            
+
+    if content['algorithms'] is None:
+        content['algorithms'] = {}
+        
     for algo in algorithms:
         content['algorithms'][algo] = {
             'exec_path': '',
