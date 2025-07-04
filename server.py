@@ -192,7 +192,7 @@ async def handle_form(
         process_name=process_select,
         notify_email=notify_email,
         uid_list=cleaned_uids,
-        date=datetime_now.strftime("%d-%m-%Y"),
+        date=datetime_now.strftime("%Y-%m-%d"),
     )
 
     job_queue.append(new_job)
