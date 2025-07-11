@@ -4,8 +4,8 @@ from src.logger import setup_logger
 from src.process_result import ProcessResult, StatusCodes
 
 
-def seg_ct_eye_socket(data_dirs: list[str], output_dir: str = "."):
-    raise NotImplemented
+def segment_eye_socket(data_dirs: list[str], output_dir: str = "."):
+    print(data_dirs, output_dir)
 
 
 if __name__ == "__main__":
@@ -14,4 +14,4 @@ if __name__ == "__main__":
         print("Supported output datatypes: mha, nifti")
         
         output_dir = sys.argv[3] if sys.argv[3] else "." 
-    seg_ct_eye_socket(sys.argv[1], output_dir, sys.argv[2])
+    segment_eye_socket(sys.argv[1], output_dir, sys.argv[2])

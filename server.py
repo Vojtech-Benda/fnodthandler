@@ -20,9 +20,9 @@ from pathlib import Path
 import shutil
 import zipfile
 import traceback
+from typing import Callable, Any
 
-
-from src.process import PROCESS_DISPATCH
+# from src.process import PROCESS_DISPATCH
 from src.process_result import ProcessResult, StatusCodes
 
 from src.download_dcm import download_dcm
@@ -30,6 +30,7 @@ from src.job import Job, ProcessedData
 from src import utils
 from src import history
 from src.logger import setup_logger
+from src.process import ProcessDispatcher
 
 
 fno_logger = setup_logger("fnodthandler")
@@ -69,12 +70,13 @@ output_data: list[ProcessedData] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
 clients_data: list[WebSocket] = []
-registered_process_options = {"seg_ct_c2c_sma"}
+process_dispatcher = ProcessDispatcher()
+process_dispatcher.register_processes()
 
 
 @app.get('/process_options/{option_name}.html', response_class=HTMLResponse)
 async def get_option_file(option_name: str):
-    if option_name not in registered_process_options:
+    if option_name not in process_dispatcher.processes:
         raise HTTPException(status_code=404, detail=f"option not allowed: {option_name}")
     
     filepath = Path("templates", "process_options", f"{option_name}.html")
@@ -233,15 +235,19 @@ async def process_job(job: Job):
     output_dir = Path("./output", job.request_id)
     if download_result.is_good():
         os.makedirs(output_dir, exist_ok=True)
-        data_paths = [os.path.join("./input", uid) for uid in job.uid_list]
+        input_paths = [os.path.join("./input", uid) for uid in job.uid_list]
         job.status = "processing"
 
         await broadcast_job_queue(job)
 
         fno_logger.info(f"starting process {job.process_name}...")
 
-        process_result = PROCESS_DISPATCH[job.process_name](data_paths, output_dir)
-
+        process_func: Callable[..., ProcessResult] = process_dispatcher.get_process(job.process_name)
+        try:
+            process_result: ProcessResult = process_func(input_paths, output_dir, **job.additional_options)
+        except Exception as exc:
+            fno_logger.error(exc)
+            
         fno_logger.info(process_result)        
         if process_result.is_good():
             job.status = "done"

@@ -106,12 +106,17 @@ def write_uid_list(uid_list: list[str], output_path: Path):
     fno_logger.debug(f"uid list written to \"{output_path}\"")
     
     
-def read_env():
+def read_env(parent: str = "", child: str = "") -> dict:
     env_path = Path(".env.yml")
     if not env_path.exists():
         raise FileNotFoundError(StatusCodes.FILE_ERROR, f"{env_path}")
     
     with open(env_path, 'r', encoding="utf-8") as fenv:
         env_vars = yaml.safe_load(fenv)
+        
+    if parent and child:
+        return env_vars[parent][child]
+    elif parent:
+        return env_vars[parent]
         
     return env_vars

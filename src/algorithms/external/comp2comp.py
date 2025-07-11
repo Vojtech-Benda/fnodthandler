@@ -9,19 +9,19 @@ from dotenv import load_dotenv
 from src.utils import read_env
 
 fno_logger = setup_logger("fnodthandler")
-load_dotenv()
+# load_dotenv()
 
-env_vars = read_env()['algorithms']['c2c']
+process_paths = read_env(parent="algorithms", child="c2c")
 
 pipeline_dict = {
     "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
 }
 
-EXECUTABLE_PATH = env_vars['exec_path']
-SCRIPT_PATH = env_vars['script_path']
+EXECUTABLE_PATH = process_paths['exec_path']
+SCRIPT_PATH = process_paths['script_path']
 
 
-def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_c2c_sma"):
+def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_ct_c2c_sma"):
     fno_logger.info(f"running comp2comp {pipeline_dict[pipeline]}")
     fno_logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline_dict[pipeline]}")
     fno_logger.debug(f"input paths: {"\n".join(data_dirs)}")
