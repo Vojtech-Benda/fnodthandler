@@ -44,11 +44,11 @@ class ProcessDispatcher():
             script_path = Path(paths['script_path']).absolute().expanduser()
             
             if not exec_path.is_file():
-                print(f"external process '{process}' executable path '{exec_path}' not found/not file")
+                print(f"external process '{process}' executable path not found/not file '{exec_path}'")
                 continue
             
             if not script_path.is_file():
-                print(f"external process '{process}' script path '{script_path}' not found/not file")
+                print(f"external process '{process}' script path not found/not file '{script_path}'")
                 continue
               
             # self.processes[process] = {'exec_path': exec_path, 'script_path': script_path}
@@ -57,7 +57,8 @@ class ProcessDispatcher():
             
             self.processes[process] = getattr(module, module_name)
             print(f"registered external {process} function")
-
+        print(f"registered processes: {", ".join(self.processes.keys())}")
+    
     def import_method(self, process: str, script_path: Path):
         # print(f"importing {process} function")
         module_name = script_path.stem
