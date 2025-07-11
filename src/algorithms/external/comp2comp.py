@@ -11,7 +11,7 @@ from src.utils import read_env
 fno_logger = setup_logger("fnodthandler")
 # load_dotenv()
 
-process_paths = read_env(parent="algorithms", child="c2c")
+process_paths = read_env(parent="algorithms", child="comp2comp")
 
 pipeline_dict = {
     "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
