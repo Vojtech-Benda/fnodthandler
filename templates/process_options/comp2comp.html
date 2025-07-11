@@ -1,5 +1,12 @@
 <!-- templates/process_options/comp2comp.html -->
-<input type="checkbox" id="save_segmentations" name="save_segmentations"><label for="save_segmentations">Uložit segmentace</label>
-<select name="process_select" id="process_select" required>
-    <option value="">--Vyberte proces--</option>
-    <option value="spine_muscle_adipose_tissue">Spine, muscle, adipose tissue</option>
+<div style="display: flex; flex-direction: row; gap: 20px; align-items: center;">
+    <label for="pipeline_select">Segmentace:</label>
+    <select name="pipeline_select" id="process_select" required>
+        <option value="">--Vyberte proces--</option>
+        <option value="spine_muscle_adipose_tissue">Páteř, svalová a tuková tkáň (T12 - L5)</option>
+    </select>
+</div>
+<div style="display: flex; flex-direction: row; gap: 20px; vertical-align: middle;">
+    <label for="save_segmentations">Uložit segmentace:</label>
+    <input type="checkbox" id="save_segmentations" name="save_segmentations" style="width: fit-content;">
+</div>

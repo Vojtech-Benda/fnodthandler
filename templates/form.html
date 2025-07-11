@@ -30,13 +30,13 @@
                             <label for="process_select">Proces:</label>
                             <select name="process_select" id="process_select" required>
                                 <option value="">--Vyberte proces--</option>
-                                <!-- <optgroup label="Konverze datového typu"> -->
+                                <optgroup label="Konverze datového typu">
                                 <option value="dcm2other">DICOM na jiný</option>
                                     <!-- <option value="dcm2nifti">DICOM na NIFTI (dcm2nifti)</option> -->
-                                <!-- </optgroup> -->
+                                </optgroup>
                                 <optgroup label="Segmentace CT">
                                     <option value="seg_ct_eye_socket">Očnice</option>
-                                    <option value="seg_ct_c2c_sma">Comp2Comp: páteř, svaly, tuková tkáň</option> <!-- comp2comp spine muscle adipose-->
+                                    <option value="comp2comp">Comp2Comp</option> <!-- comp2comp spine muscle adipose-->
                                 </optgroup>
                             </select>
                         </div>
@@ -48,21 +48,21 @@
                     </div>
                 </div>
                 
-                <div>
+                <div style="display: flex; flex-direction: column; margin-top: 15px;">
                     <label for="uid_list">UID studie/série:</label>
                     <textarea name="uid_list" id="uid_list" rows="5" cols="50" class="uids_textarea"
                     placeholder="1.2.3.456.789.01.123.456789.123,&#10;1.2.123.456.789.123456789,&#10;..." required></textarea>
                     <input type="file" id="uid_fileup_btn" class="uid_fileup_btn" accept="text/plain, text/csv"/>
                 </div>
-        
-                <input type="submit" value="Potvrdit" id="form_confirm" class="navigation_button"/>
+
+                <input type="submit" value="Potvrdit" id="form_confirm" class="navigation_button" style="margin-top: 15px;"/>
                 
                 <div>
-                    <button id="toggle_arrow" type="button">
+                    <button id="toggle_options_btn" class="toggle_options_btn" type="button">
                         ▶ Nastavení procesu
                     </button>
 
-                    <div id="process_options">
+                    <div id="div_addit_process_options">
                         <!-- dynamic option content goes here -->
                     </div>
                 </div>
