@@ -140,28 +140,33 @@ window.addEventListener('click', function(event) {
     }
 });
 
-const additionalOptionsToggleBtn = document.getElementById("toggle_arrow");
-const optionsContainer = document.getElementById("process_options");
+const additionalOptionsToggleBtn = document.getElementById("toggle_options_btn");
+const optionsContainer = document.getElementById("div_addit_process_options");
 const processSelector = document.getElementById("process_select")
 
 let expanded = false;
 
 additionalOptionsToggleBtn.addEventListener('click', () => {
     expanded = !expanded;
-    optionsContainer.style.display = expanded ? 'block' : 'none';
+    optionsContainer.style.display = expanded ? 'flex' : 'none';
     additionalOptionsToggleBtn.textContent = expanded ? '▼ Nastavení procesu' : '▶ Nastavení procesu';
 });
 
 processSelector.addEventListener('change', async () => {
     const value = processSelector.value;
-    if (!value) return;
-
+    if (!value) {
+        additionalOptionsToggleBtn.click();
+        optionsContainer.innerHTML = ``;
+        optionsContainer.style = "";
+        return;
+    }
+    
     if (!expanded) additionalOptionsToggleBtn.click();
 
     try {
         const response = await fetch(`/process_options/${value}.html`);
         if (!response.ok) throw new Error(`failed to load options ${value}`);
-        
+
         const html = await response.text();
         optionsContainer.innerHTML = html;
     } catch (err) {

@@ -15,9 +15,9 @@ body {
     width: auto;
 } */
 
-div {
+/* div {
     margin-bottom: 15px;
-}
+} */
 
 label {
     font-family: Arial, sans-serif;
@@ -269,4 +269,23 @@ input[type="submit"]:hover {
 
 .card_row strong {
     min-width: 10px;
+}
+
+.toggle_options_btn {
+    font-size: inherit;
+    font-weight: bold;
+    background: none;
+    border: none;
+    margin-top: 15px;
+}
+
+#div_addit_process_options {
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    margin-top: 20px;
+    margin-left: 10px;
+
+    border-left: 1px solid #ccc;
+    padding-left: 10px;
 }
