@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from src.logger import setup_logger
-from src.process_result import ProcessResult, StatusCodes
+from src.task_result import TaskResult, StatusCodes
 from src.utils import read_env
 
 fno_logger = setup_logger("fnodthandler")
@@ -40,7 +40,7 @@ def download_dcm(pacs: dict, series_uids: list):
     downloaded_uids = [uid for uid in series_uids if uid in os.listdir("./input")]
     fno_logger.info(f"downloaded {len(downloaded_uids)} out of {len(series_uids)} series")
     
-    result = ProcessResult()
+    result = TaskResult()
     
     if len(failed_uids) != 0:
         result.mark_warning("C-MOVE: some files failed to download", stdout=sub_result.stdout)

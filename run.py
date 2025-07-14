@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
-import os
 import uvicorn
 from pathlib import Path
-from dotenv import load_dotenv
 
 from src.logger import setup_logger
 from src.utils import read_env
@@ -19,9 +17,6 @@ def main():
         sys.exit(-1)
     
     env_vars = read_env()
-    # load_dotenv()
-    # host = os.getenv("APP_HOST")
-    # port = int(os.getenv("APP_PORT"))
     
     host = env_vars['host']
     port= env_vars['port']

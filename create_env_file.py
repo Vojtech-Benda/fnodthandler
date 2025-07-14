@@ -1,9 +1,8 @@
 import sys
-import os
 import argparse
 from pathlib import Path
 import yaml
-from src.process_result import StatusCodes
+from src.task_result import StatusCodes
 
 def get_parser():
     parser = argparse.ArgumentParser(prog="fnodthandler", description="Automatically process DICOM data")

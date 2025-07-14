@@ -13,7 +13,7 @@ const historyTable = document.getElementById("history_table");
             row.innerHTML = `
                 <td>${job.request_id}</td>
                 <td>${job.pacs_ae} ${job.pacs_ip}:${job.pacs_port}</td>
-                <td>${job.process_name}</td>
+                <td>${job.task_name}</td>
                 <td><div class=uid-cell>${uid_cell_text}</div></td>
                 <td>${job.notify_email}</td>
                 <td>${job.date}</td>

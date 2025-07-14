@@ -7,7 +7,7 @@ import yaml
 
 from src.job import Job
 from src.logger import setup_logger
-from src.process_result import StatusCodes
+from src.task_result import StatusCodes
 
 fno_logger = setup_logger("fnodthandler")
 
@@ -34,7 +34,7 @@ def format_job_string(job: Job, level: int = 0):
     
     if level == 1:
         job_string += (
-            f" - {'Process:':<16}{job.process_name}\n"
+            f" - {'Task:':<16}{job.task_name}\n"
             f" - {'Notify email:':<16}{job.notify_email}\n"
             f" - {'UIDs:':<16}{job.uid_list}\n"
             )
@@ -45,17 +45,14 @@ def send_email(job: Job):
     env_vars = read_env()
     sender_email = env_vars['email']
     sender_email_pw = env_vars['email_pw']
-
-    # sender_email = os.getenv("SENDER_EMAIL_ADDRESS")
-    # sender_email_pw = os.getenv("SENDER_EMAIL_PASSWORD")
     
     msg = EmailMessage()
-    msg['Subject'] = f"Dokončení procesu {job.request_id} - {job.process_name}" 
+    msg['Subject'] = f"Dokončení procesu {job.request_id} - {job.task_name}" 
     msg['From'] = sender_email
     msg['To'] = job.notify_email
     
     message = f"""\
-Žádost {job.request_id} - {job.process_name} ze dne {job.date} je dokončena.
+Žádost {job.request_id} - {job.task_name} ze dne {job.date} je dokončena.
 PACS: {job.pacs['aetitle']} - {job.pacs['ip']}:{job.pacs['port']}
 Začátek: {job.start_time}
 Konec: {job.finish_time}

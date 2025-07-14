@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -7,7 +7,6 @@ from fastapi.exceptions import HTTPException
 from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 
-import sys
 import os
 import glob
 import random
@@ -17,20 +16,17 @@ import aiosqlite
 import asyncio
 from datetime import datetime
 from pathlib import Path
-import shutil
-import zipfile
 import traceback
-from typing import Callable, Any
+from typing import Callable
 
-# from src.process import PROCESS_DISPATCH
-from src.process_result import ProcessResult, StatusCodes
+from src.task_result import TaskResult, StatusCodes
 
 from src.download_dcm import download_dcm
 from src.job import Job, ProcessedData
 from src import utils
 from src import history
 from src.logger import setup_logger
-from src.process import ProcessDispatcher
+from src.task import TaskDispatcher
 
 
 fno_logger = setup_logger("fnodthandler")
@@ -70,16 +66,16 @@ output_data: list[ProcessedData] = []
 clients_jobs: list[WebSocket] = []
 clients_history: list[WebSocket] = []
 clients_data: list[WebSocket] = []
-process_dispatcher = ProcessDispatcher()
-process_dispatcher.register_processes()
+task_dispatcher = TaskDispatcher()
+task_dispatcher.register_tasks()
 
 
-@app.get('/process_options/{option_name}.html', response_class=HTMLResponse)
+@app.get('/task_options/{option_name}.html', response_class=HTMLResponse)
 async def get_option_file(option_name: str):
-    if option_name not in process_dispatcher.processes:
+    if option_name not in task_dispatcher.tasks:
         raise HTTPException(status_code=404, detail=f"option not allowed: {option_name}")
     
-    filepath = Path("templates", "process_options", f"{option_name}.html")
+    filepath = Path("templates", "task_options", f"{option_name}.html")
     if not filepath.exists() or not filepath.is_file():
         raise HTTPException(status_code=404, detail=f"HTML options file not found: {option_name}")
     
@@ -198,7 +194,7 @@ async def handle_form(request: Request):
     new_job = Job(
         request_id=request_id,
         pacs={"ip": pacs_ip, "port": pacs_port, "aetitle": pacs_ae},
-        process_name=data['process_select'],
+        task_name=data['task_select'],
         notify_email=data['notify_email'],
         uid_list=cleaned_uids,
         date=datetime_now.strftime("%Y-%m-%d"),
@@ -219,7 +215,7 @@ async def process_job(job: Job):
     await broadcast_job_queue(job)
 
     requested_uids = [uid for uid in job.uid_list if not os.path.exists(os.path.join("./input", uid))]
-    download_result = ProcessResult()
+    download_result = TaskResult()
     if len(requested_uids) != 0:
         fno_logger.debug(f"downloading data for:\n{",\n".join(requested_uids)}")
         download_result = download_dcm(job.pacs, requested_uids)
@@ -240,18 +236,18 @@ async def process_job(job: Job):
 
         await broadcast_job_queue(job)
 
-        fno_logger.info(f"starting process {job.process_name}...")
+        fno_logger.info(f"starting task {job.task_name}...")
 
-        process_func: Callable[..., ProcessResult] = process_dispatcher.get_process(job.process_name)
+        task_func: Callable[..., TaskResult] = task_dispatcher.get_task(job.task_name)
         try:
-            process_result: ProcessResult = process_func(input_paths, output_dir, **job.additional_options)
+            task_result: TaskResult = task_func(input_paths, output_dir, **job.additional_options)
         except Exception as exc:
             fno_logger.error(exc)
             
-        fno_logger.info(process_result)        
-        if process_result.is_good():
+        fno_logger.info(task_result)        
+        if task_result.is_good():
             job.status = "done"
-        elif process_result.is_bad():
+        elif task_result.is_bad():
             job.status = "fail"
             job.status_detail = "failed processing data"
 
@@ -280,7 +276,7 @@ async def process_job(job: Job):
     if file_size > 0:
         processed_data = ProcessedData(
             request_id=job.request_id,
-            process_name=job.process_name,
+            task_name=job.task_name,
             date=job.date,
             finish_time=job.finish_time,
             file_size=f"{file_size:.2f}",
@@ -344,13 +340,13 @@ async def check_output_data():
         existing_ids = [item.request_id for item in output_data]
         new_ids = [request_id for path in files if (request_id := Path(path).stem) not in existing_ids]
         async with aiosqlite.connect('jobs_history.db') as db:
-                    sql_comm = f"SELECT request_id, process_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(new_ids))}) ORDER BY date DESC, finish_time DESC"
+                    sql_comm = f"SELECT request_id, task_name, date, finish_time FROM jobs_history WHERE request_id IN ({','.join('?'*len(new_ids))}) ORDER BY date DESC, finish_time DESC"
                     async with db.execute(sql_comm, new_ids) as cursor:
                         columns = [column[0] for column in cursor.description]
                         async for row in cursor:
                             data = ProcessedData(
                                 request_id=row[0],
-                                process_name=row[1],
+                                task_name=row[1],
                                 date=row[2],
                                 finish_time=row[3]
                                 )

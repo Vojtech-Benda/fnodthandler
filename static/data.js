@@ -16,7 +16,7 @@ ws.onmessage = function(event) {
         row.id = `row_${item.request_id}`;
         row.innerHTML = `
             <td>${item.request_id}</td>
-            <td>${item.process_name}</td>
+            <td>${item.task_name}</td>
             <td>${item.date}</td>
             <td>${item.finish_time}</td>
             <td>
@@ -67,23 +67,23 @@ async function deleteZipFile(request_id) {
 };
 
 const idFilter = document.getElementById("request_id_filter");
-const processFilter = document.getElementById("process_name_filter");
+const taskFilter = document.getElementById("task_name_filter");
 const tbody = document.getElementById("data_table_body");
 
 function filterTable() {
     const idValue = idFilter.value.toLowerCase();
-    const processValue = processFilter.value.toLowerCase();
+    const taskValue = taskFilter.value.toLowerCase();
 
     Array.from(tbody.rows).forEach(row => {
         const idCell = row.cells[0].textContent.toLowerCase();
-        const processCell = row.cells[1].textContent.toLowerCase();
+        const taskCell = row.cells[1].textContent.toLowerCase();
 
         const matchesId = idCell.includes(idValue);
-        const matchesProcess = processCell.includes(processValue);
+        const matchesTask = taskCell.includes(taskValue);
 
-        row.style.display = (matchesId && matchesProcess) ? "" : "none";
+        row.style.display = (matchesId && matchesTask) ? "" : "none";
     });
 }
     
 idFilter.addEventListener("input", filterTable);
-processFilter.addEventListener("input", filterTable);
+taskFilter.addEventListener("input", filterTable);

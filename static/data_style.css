@@ -8,7 +8,6 @@ body {
 }
 
 .header_title {
-    /* font-family: Arial, sans-serif; */
     font-size: 1.5rem;
     color: #333;
     margin-bottom: 10px;
@@ -52,7 +51,7 @@ body {
     box-sizing: border-box;
 }
 
-.process_filter {
+.task_filter {
     max-width: 250px;
 }
 
@@ -80,7 +79,6 @@ body {
     font-family: Arial, sans-serif;
     background-color: #fff;
     box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    /* border-radius: 8px; */
     overflow: hidden;
 }
 
@@ -94,7 +92,6 @@ body {
 .data_table thead th {
     padding: 12px 15px;
     font-weight: 600;
-    /* border-bottom: 2px solid #0056b3; */
     text-align: left;
 }
 

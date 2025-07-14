@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 import SimpleITK as sitk
 # from src.logger import setup_logger
-from src.process_result import ProcessResult, StatusCodes
+from src.task_result import TaskResult, StatusCodes
 # fno_logger = setup_logger("fnodthandler")
 
 logging.basicConfig(
@@ -41,7 +41,7 @@ def dcm2other(input_dirs: list[str], output_dir: str = "./converted", **kwargs):
     if not output_dir.exists():
         os.makedirs(output_dir, exist_ok=True)
         
-    result = ProcessResult()
+    result = TaskResult()
     processed_dirs = [False] * len(input_dirs)
     for idx, directory in enumerate(input_dirs):
         dicom_names = reader.GetGDCMSeriesFileNames(directory)

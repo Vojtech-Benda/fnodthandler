@@ -15,11 +15,11 @@ class StatusCodes(Enum):
 
 
 @dataclass
-class ProcessResult:
+class TaskResult:
     code: StatusCodes = StatusCodes.NONE
     message: str = None
     stdout: Optional[str] = None
-    process: Optional[str] = None
+    task: Optional[str] = None
         
     def mark_success(self, message: str, **kwargs):
         self.code = StatusCodes.SUCCESS
@@ -48,7 +48,7 @@ class ProcessResult:
         return self.code in [StatusCodes.UNKNOWN_ERROR, StatusCodes.DOWNLOAD_ERROR, StatusCodes.CONVERSION_ERROR]
     
     def format_result(self) -> str:
-        msg = f"process: {self.process}\nstatus_code: {self.code}\nmessage: {self.message}"
+        msg = f"task: {self.task}\nstatus_code: {self.code}\nmessage: {self.message}"
         if self.stdout:
             msg += f"\nstdout: {self.stdout}"
         return msg

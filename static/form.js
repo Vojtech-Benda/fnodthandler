@@ -13,15 +13,12 @@ ws.onmessage = function(event) {
     current_job_div.innerHTML = '';
     pending_jobs_table.innerHTML = '';
 
-
-    // <div class="card_row">${current_uid_cell_text}</div>
-    // <div class="card_row">${current.finish_time}</div>
     if (current) {
         const current_uid_cell_text = current.uid_list.join(",<br>");
         current_job_div.innerHTML = `
                 <div class="card_row"><strong>ID požadavku:</strong>${current.request_id}</div>
                 <div class="card_row"><strong>PACS:</strong>${current.pacs.aetitle} ${current.pacs.ip}:${current.pacs.port}</div>
-                <div class="card_row"><strong>Proces:</strong>${current.process_name}</div>
+                <div class="card_row"><strong>Proces:</strong>${current.task_name}</div>
                 <div class="card_row"><strong>Email:</strong>${current.notify_email}</div>
                 <div class="card_row"><strong>Datum:</strong>${current.date}</div>
                 <div class="card_row"><strong>Čas začátku:</strong>${current.start_time}</div>
@@ -50,7 +47,7 @@ ws.onmessage = function(event) {
         row.innerHTML = `
             <td>${job.request_id}</td>
             <td>${job.pacs.aetitle} ${job.pacs.ip}:${job.pacs.port}</td>
-            <td>${job.process_name}</td>
+            <td>${job.task_name}</td>
             <td><div class="uid-cell">${uid_cell_text}</div></td>
             <td>${job.notify_email}</td>
             <td>${job.date}</td>
@@ -66,7 +63,7 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
     e.preventDefault();  // prevents default from submission
 
     const formData = new FormData(this);
-    const knownKeys = ["pacs_select", "process_select", "notify_email", "uid_list"]
+    const knownKeys = ["pacs_select", "task_select", "notify_email", "uid_list"]
     for (const [key, value] of formData.entries()) {
         console.log(`${key}: ${value}`)
 
@@ -101,7 +98,6 @@ document.getElementById("job_form").addEventListener("submit", async function(e)
         console.log("Job submitted:", result.message);
 
         this.reset();
-        // document.getElementById("job_added_msg").textContent = "Požadavek přidán!";
     } catch (error) {
         console.error("Failed to submit job:", error);
     }
@@ -141,8 +137,8 @@ window.addEventListener('click', function(event) {
 });
 
 const additionalOptionsToggleBtn = document.getElementById("toggle_options_btn");
-const optionsContainer = document.getElementById("div_addit_process_options");
-const processSelector = document.getElementById("process_select")
+const optionsContainer = document.getElementById("div_addit_task_options");
+const taskSelector = document.getElementById("task_select")
 
 let expanded = false;
 
@@ -152,8 +148,8 @@ additionalOptionsToggleBtn.addEventListener('click', () => {
     additionalOptionsToggleBtn.textContent = expanded ? '▼ Nastavení procesu' : '▶ Nastavení procesu';
 });
 
-processSelector.addEventListener('change', async () => {
-    const value = processSelector.value;
+taskSelector.addEventListener('change', async () => {
+    const value = taskSelector.value;
     if (!value) {
         additionalOptionsToggleBtn.click();
         optionsContainer.innerHTML = ``;
@@ -164,7 +160,7 @@ processSelector.addEventListener('change', async () => {
     if (!expanded) additionalOptionsToggleBtn.click();
 
     try {
-        const response = await fetch(`/process_options/${value}.html`);
+        const response = await fetch(`/task_options/${value}.html`);
         if (!response.ok) throw new Error(`failed to load options ${value}`);
 
         const html = await response.text();

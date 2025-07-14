@@ -1,7 +1,7 @@
 import sys
 import os
 from src.logger import setup_logger
-from src.process_result import ProcessResult, StatusCodes
+from src.task_result import TaskResult, StatusCodes
 
 
 def segment_eye_socket(data_dirs: list[str], output_dir: str = "."):

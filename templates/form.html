@@ -27,16 +27,15 @@
                         </div>
         
                         <div>
-                            <label for="process_select">Proces:</label>
-                            <select name="process_select" id="process_select" required>
+                            <label for="task_select">Proces:</label>
+                            <select name="task_select" id="task_select" required>
                                 <option value="">--Vyberte proces--</option>
                                 <optgroup label="Konverze datového typu">
                                 <option value="dcm2other">DICOM na jiný</option>
-                                    <!-- <option value="dcm2nifti">DICOM na NIFTI (dcm2nifti)</option> -->
                                 </optgroup>
                                 <optgroup label="Segmentace CT">
                                     <option value="seg_ct_eye_socket">Očnice</option>
-                                    <option value="comp2comp">Comp2Comp</option> <!-- comp2comp spine muscle adipose-->
+                                    <option value="comp2comp">Comp2Comp</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -62,7 +61,7 @@
                         ▶ Nastavení procesu
                     </button>
 
-                    <div id="div_addit_process_options">
+                    <div id="div_addit_task_options">
                         <!-- dynamic option content goes here -->
                     </div>
                 </div>
@@ -93,7 +92,7 @@
     <colgroup>
         <col style="width: 10%;"> <!-- request_id -->
         <col style="width: 10%;"> <!-- pacs -->
-        <col style="width: 10%;"> <!-- process -->
+        <col style="width: 10%;"> <!-- task -->
         <col style="width: 30%;"> <!-- uids -->
         <col style="width: 10%;"> <!-- email -->
         <col style="width: 10%;"> <!-- date -->

@@ -3,23 +3,18 @@ import os
 import subprocess
 
 from src.logger import setup_logger
-from src.process_result import ProcessResult, StatusCodes
-from dotenv import load_dotenv
+from src.task_result import TaskResult, StatusCodes
 from pathlib import Path
 
 from src.utils import read_env
 
 fno_logger = setup_logger("fnodthandler")
-# load_dotenv()
 
-process_paths = read_env(parent="algorithms", child="comp2comp")
+task_paths = read_env(parent="algorithms", child="comp2comp")
 
-# pipeline_dict = {
-#     "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
-# }
 
-EXECUTABLE_PATH = Path(process_paths['exec_path']).expanduser()
-SCRIPT_PATH = Path(process_paths['script_path']).expanduser()
+EXECUTABLE_PATH = Path(task_paths['exec_path']).expanduser()
+SCRIPT_PATH = Path(task_paths['script_path']).expanduser()
 
 
 def comp2comp(data_dirs: list[str], output_dir: str = ".", **kwargs):
@@ -31,7 +26,7 @@ def comp2comp(data_dirs: list[str], output_dir: str = ".", **kwargs):
     fno_logger.debug(f"input paths: {"\n".join(data_dirs)}")
     
     fno_logger.info(f"segmenting {len(data_dirs)} data")
-    result = ProcessResult()
+    result = TaskResult()
     sub_result: subprocess.CompletedProcess = None
     sub_results = []
     

@@ -7,18 +7,6 @@ body {
     padding: 30px;
 }
 
-/* form {
-    background: white;
-    padding: 25px 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    width: auto;
-} */
-
-/* div {
-    margin-bottom: 15px;
-} */
-
 label {
     font-family: Arial, sans-serif;
     display: block;
@@ -174,7 +162,6 @@ input[type="submit"]:hover {
     text-transform: uppercase;
     font-size: 0.85rem;
     color: white;
-    /* border-radius: 8px; */
 }
 
 .job_table tr {
@@ -279,7 +266,7 @@ input[type="submit"]:hover {
     margin-top: 15px;
 }
 
-#div_addit_process_options {
+#div_addit_task_options {
     display: flex; 
     flex-direction: column; 
     gap: 15px; 
