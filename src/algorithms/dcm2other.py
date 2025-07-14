@@ -5,15 +5,10 @@ from pathlib import Path
 from argparse import ArgumentParser
 
 import SimpleITK as sitk
-# from src.logger import setup_logger
 from src.task_result import TaskResult, StatusCodes
-# fno_logger = setup_logger("fnodthandler")
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:\t%(message)s",
-    level=logging.INFO,
-    datefmt="%H:%M:%S")
 
+logger = logging.getLogger("uvicorn")
 
 SITK_IMAGE_TYPES = {
     "mha": "mha",
@@ -32,8 +27,7 @@ def get_args():
     return parser.parse_args()
 
 def dcm2other(input_dirs: list[str], output_dir: str = "./converted", **kwargs):
-    # fno_logger.info(f"converting {len(data_dirs)} data")
-    logging.info(f"found {len(input_dirs)} directories with DICOM files")
+    logger.info(f"found {len(input_dirs)} directories with DICOM files")
     
     reader = sitk.ImageSeriesReader()
     
@@ -50,22 +44,21 @@ def dcm2other(input_dirs: list[str], output_dir: str = "./converted", **kwargs):
         try:
             image = reader.Execute()
         except:
-            # fno_logger.error(f"unable to read image data: \"{directory}\"")
-            logging.error(f"unable to read image data: '{directory}'")
+            logger.error(f"unable to read image data: '{directory}'")
             continue
         
         output_datatype = kwargs.get("output_datatype")
         filename = os.path.join(output_dir, os.path.basename(directory) + "." + SITK_IMAGE_TYPES[output_datatype])
-        logging.info(f"writing '{filename}' as {output_datatype.upper()}")
+        logger.info(f"writing '{filename}' as {output_datatype.upper()}")
         if os.path.exists(filename):
-            logging.info(f"file exists, overwriting: '{filename}'")
+            logger.info(f"file exists, overwriting: '{filename}'")
         try:
             sitk.WriteImage(image, filename)
-            logging.info(f"conversion finished '{filename}'")
+            logger.info(f"conversion finished '{filename}'")
             processed_dirs[idx] = True
         except RuntimeError as err:
-            logging.error("conversion failed")
-            logging.error(err)
+            logger.error("conversion failed")
+            logger.error(err)
     
     if sum(processed_dirs) == len(processed_dirs):
         result.mark_success("all input dirs processed")

@@ -1,9 +1,10 @@
 import aiosqlite
 import os
-from .job import Job
-from .logger import setup_logger
+import logging
 
-fno_logger = setup_logger("fnodthandler")
+from src.job import Job
+
+logger = logging.getLogger("uvicorn")
 
 async def init_db():
     async with aiosqlite.connect("jobs_history.db") as db:
@@ -22,7 +23,7 @@ async def init_db():
                          status TEXT
                          )''')
         await db.commit()
-        fno_logger.info("created database jobs_history.db")
+        logger.info("created database jobs_history.db")
         
         
 async def write_job_to_db(job: Job):
@@ -47,6 +48,6 @@ async def write_job_to_db(job: Job):
             )
         )
         await db.commit()
-        fno_logger.info("job written to history")
+        logger.info("job written to history")
         
         

@@ -1,14 +1,14 @@
 import sys
 import os
 import subprocess
+import logging
 
-from src.logger import setup_logger
 from src.task_result import TaskResult, StatusCodes
 from pathlib import Path
 
 from src.utils import read_env
 
-fno_logger = setup_logger("fnodthandler")
+logger = logging.getLogger("uvicorn")
 
 task_paths = read_env(parent="algorithms", child="comp2comp")
 
@@ -21,11 +21,11 @@ def comp2comp(data_dirs: list[str], output_dir: str = ".", **kwargs):
     save_segmentations = kwargs.get("save_segmentations", False)
     pipeline = kwargs.get('pipeline_select')
     
-    fno_logger.info(f"starting comp2comp, pipeline {pipeline}")
-    fno_logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline}")
-    fno_logger.debug(f"input paths: {"\n".join(data_dirs)}")
+    logger.info(f"starting comp2comp, pipeline {pipeline}")
+    logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline}")
+    logger.debug(f"input paths: {"\n".join(data_dirs)}")
     
-    fno_logger.info(f"segmenting {len(data_dirs)} data")
+    logger.info(f"segmenting {len(data_dirs)} data")
     result = TaskResult()
     sub_result: subprocess.CompletedProcess = None
     sub_results = []
@@ -42,8 +42,8 @@ def comp2comp(data_dirs: list[str], output_dir: str = ".", **kwargs):
                                         check=True)
             sub_results.append(sub_result.returncode)
         except subprocess.CalledProcessError as err:
-            fno_logger.error(f"comp2comp failed with exit code {err.returncode}")
-            fno_logger.error(err.stderr)
+            logger.error(f"comp2comp failed with exit code {err.returncode}")
+            logger.error(err.stderr)
             os.rmdir(output_dir)
     
     if sum(sub_results) == 0:
