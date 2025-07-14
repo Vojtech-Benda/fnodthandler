@@ -13,17 +13,19 @@ fno_logger = setup_logger("fnodthandler")
 
 process_paths = read_env(parent="algorithms", child="comp2comp")
 
-pipeline_dict = {
-    "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
-}
+# pipeline_dict = {
+#     "seg_ct_c2c_sma": "spine_muscle_adipose_tissue"
+# }
 
 EXECUTABLE_PATH = process_paths['exec_path']
 SCRIPT_PATH = process_paths['script_path']
 
 
-def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_ct_c2c_sma"):
-    fno_logger.info(f"running comp2comp {pipeline_dict[pipeline]}")
-    fno_logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline_dict[pipeline]}")
+def comp2comp(data_dirs: list[str], output_dir: str = ".", **kwargs):
+    pipeline = kwargs.get('pipeline_select')
+    
+    fno_logger.info(f"starting comp2comp, pipeline {pipeline}")
+    fno_logger.debug(f"subprocess args: {EXECUTABLE_PATH} {SCRIPT_PATH} {pipeline}")
     fno_logger.debug(f"input paths: {"\n".join(data_dirs)}")
     
     fno_logger.info(f"segmenting {len(data_dirs)} data")
@@ -36,7 +38,7 @@ def comp2comp(data_dirs: list[str], output_dir: str = ".", pipeline: str = "seg_
             sub_result = subprocess.run([
                 EXECUTABLE_PATH,
                 SCRIPT_PATH,
-                pipeline_dict[pipeline],
+                pipeline,
                 "-i", directory,
                 "-o", output_dir,
                 "--save_segmentations"
