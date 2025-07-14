@@ -22,18 +22,10 @@ def download_dcm(pacs: dict, series_uids: list):
         fno_logger.debug(f"creating download directory \"{output_dir}\"")
         os.makedirs(output_dir, exist_ok=True)
         try: 
-            sub_result = subprocess.run([
-                sys.executable,
-                "./src/algorithms/movescu.py", 
-                pacs['ip'], pacs['port'],
-                "-aec", pacs['aetitle'],
-                "-aet", receiver_aetitle,
-                "-aem", receiver_aetitle,
-                "--store", "--store-port", receiver_store_port,
-                "-od", output_dir,
-                "-k", f"SeriesInstanceUID={serie_uid}",
-                "-q"
-                ])
+            command = [sys.executable, "./src/algorithms/movescu.py", pacs['ip'], pacs['port'], "-aec", pacs['aetitle'],
+                       "-aet", receiver_aetitle, "-aem", receiver_aetitle, "--store", "--store-port", str(receiver_store_port),
+                       "-od", output_dir, "-k", "QueryRetrieveLevel=SERIES", "-k", f"SeriesInstanceUID={serie_uid}"]
+            sub_result = subprocess.run(command, capture_output=True)
         except subprocess.CalledProcessError as er:
             fno_logger.error(f"script movescu.py failed with exit code {er.returncode}")
             fno_logger.error(f"script arguments {pacs}, download dir {output_dir}, series uid {serie_uid}")
