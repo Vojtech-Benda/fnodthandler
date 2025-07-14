@@ -25,7 +25,6 @@ from src.download_dcm import download_dcm
 from src.job import Job, ProcessedData
 from src import utils
 from src import history
-from src.logger import setup_logger
 from src.task import TaskDispatcher
 import logging
 
